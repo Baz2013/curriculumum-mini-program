@@ -3,11 +3,15 @@
   <!-- 用户头部信息 -->
   <view class="user-header">
     <view class="avatar-wrapper">
-      <open-data type="userAvatarUrl" class="avatar"></open-data>
+      <image
+        class="avatar"
+        src="{{userInfo.avatarUrl || '/assets/default-avatar.png'}}"
+        mode="aspectFill"
+      ></image>
     </view>
     <view class="user-info">
       <view class="nickname">
-        <open-data type="userNickName"></open-data>
+        {{userInfo.nickName || '学员'}}
       </view>
       <view class="join-date">加入于 {{userInfo.joinDate}}</view>
     </view>

@@ -4,6 +4,8 @@ const app = getApp()
 Page({
   data: {
     userInfo: {
+      avatarUrl: '',
+      nickName: '',
       joinDate: '2024年1月'
     },
     stats: {
@@ -16,6 +18,7 @@ Page({
   },
 
   onLoad() {
+    this.loadUserInfo()
     this.getUserStats()
     this.calculateCacheSize()
   },
@@ -23,6 +26,47 @@ Page({
   onShow() {
     // 每次显示页面都更新统计数据
     this.getUserStats()
+  },
+
+  /**
+   * 加载用户信息
+   */
+  loadUserInfo() {
+    try {
+      // 尝试从全局数据获取用户信息
+      const globalUserInfo = app.globalData.userInfo
+      
+      if (globalUserInfo) {
+        this.setData({
+          'userInfo.avatarUrl': globalUserInfo.avatarUrl,
+          'userInfo.nickName': globalUserInfo.nickName
+        })
+      } else {
+        // 尝试从缓存读取
+        const cachedUserInfo = wx.getStorageSync('userInfo')
+        if (cachedUserInfo) {
+          this.setData({
+            'userInfo.avatarUrl': cachedUserInfo.avatarUrl,
+            'userInfo.nickName': cachedUserInfo.nickName
+          })
+        }
+      }
+      
+      // 设置加入时间为当前月份
+      const currentDate = new Date()
+      const year = currentDate.getFullYear()
+      const month = currentDate.getMonth() + 1
+      this.setData({
+        'userInfo.joinDate': `${year}年${month}月`
+      })
+      
+    } catch (error) {
+      console.error('加载用户信息失败:', error)
+      // 使用默认值
+      this.setData({
+        'userInfo.nickName': '学员'
+      })
+    }
   },
 
   /**
