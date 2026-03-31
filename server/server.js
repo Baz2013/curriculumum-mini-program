@@ -38,13 +38,15 @@ app.use('/api/user', userRoutes);
 app.use('/api/admin', adminRoutes);
 
 // 静态文件托管 - 管理后台
-app.use(express.static(path.join(__dirname, '../admin/public')));
-app.use('/css', express.static(path.join(__dirname, '../admin/css')));
-app.use('/js', express.static(path.join(__dirname, '../admin/js')));
+// 注意：在 Docker 容器中，admin 目录位于 /app/admin/，而非上级目录
+const adminDir = path.join(__dirname, './admin');
+app.use(express.static(path.join(adminDir, 'public')));
+app.use('/css', express.static(path.join(adminDir, 'css')));
+app.use('/js', express.static(path.join(adminDir, 'js')));
 
 // 默认路由指向管理后台
 app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, '../admin/public/index.html'));
+  res.sendFile(path.join(adminDir, 'public/index.html'));
 });
 
 // 健康检查接口
