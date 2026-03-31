@@ -94,7 +94,13 @@ docker-compose logs -f
 docker-compose down
 ```
 
-详细教程请参阅：[Docker 部署指南](docs/DOCKER_DEPLOYMENT.md)
+#### 重要提示
+⚠️ **首次部署注意事项**：
+- 如果遇到 `npm ci` 错误，请先在 `server` 目录下运行 `npm install` 生成 `package-lock.json`
+- 如果管理后台无法访问，请使用 `docker-compose build --no-cache` 重新构建镜像
+- 确保云服务器安全组已开放 3000 端口
+
+详细教程及故障排除请参阅：[Docker 部署指南](docs/DOCKER_DEPLOYMENT.md)
 
 ### 运行小程序
 1. 使用微信开发者工具打开 `miniprogram` 目录

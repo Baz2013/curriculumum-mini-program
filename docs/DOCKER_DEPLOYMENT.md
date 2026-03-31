@@ -330,6 +330,62 @@ sudo firewall-cmd --reload
 sudo setenforce 0
 ```
 
+### 问题6: 管理后台无法访问
+
+**症状**:
+- 浏览器访问 `http://your-server-ip:3000` 显示错误
+- 错误信息类似 `"ENOENT: no such file or directory, stat '/admin/public/index.html'"`
+
+**原因**:
+Docker 镜像中没有正确复制管理后台文件，或者文件路径配置不匹配。
+
+**诊断**:
+
+```bash
+# 检查容器内是否存在 admin 目录
+docker exec course-api ls -la /app/admin/
+
+# 应该看到以下输出：
+# drwxr-xr-x    3 nodejs   nodejs        4096 Mar 31 06:00 .
+# drwxr-xr-x    1 nodejs   nodejs        4096 Mar 31 06:00 ..
+# drwxr-xr-x    2 nodejs   nodejs        4096 Mar 31 06:00 css
+# drwxr-xr-x    2 nodejs   nodejs        4096 Mar 31 06:00 js
+# drwxr-xr-x    2 nodejs   nodejs        4096 Mar 31 06:00 public
+
+# 检查 index.html 是否存在
+docker exec course-api ls -la /app/admin/public/
+```
+
+**解决方案**:
+
+```bash
+# 1. 停止并删除旧容器
+docker-compose down
+
+# 2. 重新构建镜像（清除缓存以确保使用最新的 Dockerfile）
+docker-compose build --no-cache
+
+# 3. 再次启动服务
+docker-compose up -d
+
+# 4. 验证文件已正确复制
+docker exec course-api ls -la /app/admin/public/
+
+# 5. 测试访问
+curl http://localhost:3000/
+```
+
+**预防措施**:
+
+确保 [`Dockerfile`](../Dockerfile) 中包含了正确的 admin 目录复制语句：
+
+```dockerfile
+# 复制管理后台静态文件（保持原有目录结构）
+COPY admin ./admin
+```
+
+这样可以将整个 admin 目录及其子目录（public、css、js）一起复制到容器中，保持原有的目录结构，使 [`server/server.js`](../server/server.js) 中的静态文件路径能够正确找到对应的文件。
+
 ---
 
 ## 最佳实践
