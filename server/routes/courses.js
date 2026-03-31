@@ -8,6 +8,14 @@ const router = express.Router();
 const { getInstance } = require('../database/init');
 
 /**
+ * 获取数据库连接的辅助函数
+ */
+const getDbConnection = () => {
+  const dbInstance = getInstance();
+  return dbInstance ? dbInstance.getConnection() : null;
+};
+
+/**
  * GET /api/courses/list
  * 获取课程列表（支持分页、分类过滤、关键字搜索）
  */
@@ -39,7 +47,7 @@ router.get('/list', async (req, res) => {
 
     const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
 
-    const db = getInstance();
+    const db = getDbConnection();
 
     // 查询总数
     const countResult = await new Promise((resolve, reject) => {
@@ -89,7 +97,7 @@ router.get('/list', async (req, res) => {
 router.get('/:id/detail', async (req, res) => {
   try {
     const { id } = req.params;
-    const db = getInstance();
+    const db = getDbConnection();
 
     const course = await new Promise((resolve, reject) => {
       const sql = `
@@ -152,7 +160,7 @@ router.post('/search', async (req, res) => {
                           sortBy === 'price_desc' ? 'ORDER BY price DESC' :
                           'ORDER BY start_time ASC';
 
-    const db = getInstance();
+    const db = getDbConnection();
 
     const courses = await new Promise((resolve, reject) => {
       const sql = `
@@ -181,7 +189,7 @@ router.post('/search', async (req, res) => {
  */
 router.get('/categories/all', async (req, res) => {
   try {
-    const db = getInstance();
+    const db = getDbConnection();
 
     const categories = await new Promise((resolve, reject) => {
       const sql = 'SELECT * FROM categories ORDER BY sort_order ASC';

@@ -8,6 +8,14 @@ const router = express.Router();
 const { getInstance } = require('../database/init');
 
 /**
+ * 获取数据库连接的辅助函数
+ */
+const getDbConnection = () => {
+  const dbInstance = getInstance();
+  return dbInstance ? dbInstance.getConnection() : null;
+};
+
+/**
  * 中间件：验证管理员权限
  */
 const verifyAdmin = (req, res, next) => {
@@ -22,7 +30,7 @@ const verifyAdmin = (req, res, next) => {
  */
 router.get('/dashboard', verifyAdmin, async (req, res) => {
   try {
-    const db = getInstance();
+    const db = getDbConnection();
 
     // 总课程数
     const totalCourses = await new Promise((resolve, reject) => {
@@ -131,7 +139,7 @@ router.get('/courses', verifyAdmin, async (req, res) => {
 
     const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
 
-    const db = getInstance();
+    const db = getDbConnection();
 
     // 查询总数
     const countResult = await new Promise((resolve, reject) => {
@@ -207,7 +215,7 @@ router.post('/courses', verifyAdmin, async (req, res) => {
     const parsedCapacity = capacity ? parseInt(capacity) : 50;
     const parsedPrice = price ? parseFloat(price) : 0;
 
-    const db = getInstance();
+    const db = getDbConnection();
 
     await new Promise((resolve, reject) => {
       const sql = `
@@ -273,7 +281,7 @@ router.put('/courses/:id', verifyAdmin, async (req, res) => {
       return res.status(400).json({ success: false, message: '没有提供任何更新的字段' });
     }
 
-    const db = getInstance();
+    const db = getDbConnection();
 
     const setClauses = Object.keys(fieldsToUpdate).map(key => `${key} = ?`).join(', ');
     const values = Object.values(fieldsToUpdate);
@@ -303,7 +311,7 @@ router.put('/courses/:id', verifyAdmin, async (req, res) => {
 router.delete('/courses/:id', verifyAdmin, async (req, res) => {
   try {
     const { id } = req.params;
-    const db = getInstance();
+    const db = getDbConnection();
 
     // 先删除关联的预约记录
     await new Promise((resolve, reject) => {
@@ -353,7 +361,7 @@ router.get('/bookings', verifyAdmin, async (req, res) => {
 
     const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
 
-    const db = getInstance();
+    const db = getDbConnection();
 
     // 查询总数
     const countResult = await new Promise((resolve, reject) => {
@@ -411,7 +419,7 @@ router.get('/users', verifyAdmin, async (req, res) => {
     const offset = (parseInt(page) - 1) * parseInt(pageSize);
     const limit = parseInt(pageSize);
 
-    const db = getInstance();
+    const db = getDbConnection();
 
     // 查询总数
     const countResult = await new Promise((resolve, reject) => {

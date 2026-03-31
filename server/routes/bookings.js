@@ -8,6 +8,14 @@ const router = express.Router();
 const { getInstance } = require('../database/init');
 
 /**
+ * 获取数据库连接的辅助函数
+ */
+const getDbConnection = () => {
+  const dbInstance = getInstance();
+  return dbInstance ? dbInstance.getConnection() : null;
+};
+
+/**
  * POST /api/bookings/create
  * 创建新的预约
  */

@@ -8,6 +8,14 @@ const router = express.Router();
 const { getInstance } = require('../database/init');
 
 /**
+ * 获取数据库连接的辅助函数
+ */
+const getDbConnection = () => {
+  const dbInstance = getInstance();
+  return dbInstance ? dbInstance.getConnection() : null;
+};
+
+/**
  * POST /api/user/login
  * 用户登录/注册
  */
