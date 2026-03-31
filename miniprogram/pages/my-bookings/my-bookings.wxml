@@ -1,0 +1,78 @@
+<!--my-bookings.wxml-->
+<view class="container">
+  <!-- Tab切换 -->
+  <view class="tabs-container">
+    <view class="tabs-wrapper">
+      <block wx:for="{{tabs}}" wx:key="key">
+        <view 
+          class="tab-item {{currentTab === item.key ? 'active' : ''}}" 
+          bindtap="switchTab"
+          data-tab="{{item.key}}"
+        >
+          {{item.label}}
+          <text wx:if="{{item.count > 0}}" class="badge-count">{{item.count}}</text>
+        </view>
+      </block>
+    </view>
+  </view>
+
+  <!-- 预约列表 -->
+  <view class="bookings-list">
+    <block wx:for="{{filteredBookings}}" wx:key="id">
+      <view class="booking-card card">
+        <view class="booking-status">
+          <text class="status-dot {{getStatusClass(item)}}"></text>
+          <text class="status-text">{{getStatusText(item)}}</text>
+        </view>
+        
+        <view class="booking-main" bindtap="goToDetail" data-course-id="{{item.course_id}}">
+          <view class="course-basic">
+            <text class="course-title">{{item.course_title}}</text>
+            <text class="course-category">{{item.category_name}}</text>
+          </view>
+          
+          <view class="booking-details">
+            <view class="detail-row">
+              <text class="detail-icon">📅</text>
+              <text class="detail-text">{{formatDate(item.start_time)}}</text>
+            </view>
+            
+            <view class="detail-row">
+              <text class="detail-icon">⏰</text>
+              <text class="detail-text">{{getTimeRange(item.start_time, item.end_time)}}</text>
+            </view>
+            
+            <view class="detail-row">
+              <text class="detail-icon">📍</text>
+              <text class="detail-text">{{item.location}}</text>
+            </view>
+            
+            <view class="detail-row">
+              <text class="detail-icon">👨‍🏫</text>
+              <text class="detail-text">{{item.teacher}}</text>
+            </view>
+          </view>
+        </view>
+        
+        <!-- 操作按钮 -->
+        <view class="booking-actions" wx:if="{{canCancel(item)}}" catchtap="cancelBooking" data-id="{{item.id}}" data-course-id="{{item.course_id}}">
+          <button class="btn-cancel" size="mini">取消预约</button>
+        </view>
+      </view>
+    </block>
+    
+    <!-- 空状态 -->
+    <view wx:if="{{filteredBookings.length === 0 && !loading}}" class="empty-state">
+      <view class="empty-icon">📋</view>
+      <view class="empty-text">{{getEmptyText()}}</view>
+      <navigator url="/pages/index/index" hover-class="none" class="explore-link">
+        去看看有哪些好课 →
+      </navigator>
+    </view>
+  </view>
+
+  <!-- 加载状态 -->
+  <view wx:if="{{loading}}" class="loading-state">
+    <text>加载中...</text>
+  </view>
+</view>

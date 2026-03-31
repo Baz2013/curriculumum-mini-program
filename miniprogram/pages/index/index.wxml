@@ -1,0 +1,72 @@
+<!--index.wxml-->
+<view class="container">
+  <!-- 头部搜索栏 -->
+  <view class="search-bar">
+    <input 
+      class="search-input" 
+      placeholder="搜索课程名称..." 
+      bindconfirm="onSearchConfirm"
+      value="{{keyword}}"
+    />
+    <button class="search-btn" size="mini" bindtap="handleSearch">搜索</button>
+  </view>
+
+  <!-- 分类标签 -->
+  <scroll-view scroll-x class="category-scroll" enable-flex>
+    <view class="category-list">
+      <block wx:for="{{categories}}" wx:key="id">
+        <view 
+          class="category-item {{currentCategory.id === item.id ? 'active' : ''}}" 
+          bindtap="selectCategory"
+          data-id="{{item.id}}"
+        >
+          {{item.name}}
+        </view>
+      </block>
+    </view>
+  </scroll-view>
+
+  <!-- 课程列表 -->
+  <view class="course-list">
+    <block wx:for="{{courses}}" wx:key="id">
+      <view class="course-card card" bindtap="goToDetail" data-id="{{item.id}}">
+        <image class="course-image" src="{{item.image || '/images/course-placeholder.jpg'}}" mode="aspectFill"></image>
+        
+        <view class="course-info">
+          <view class="course-title">{{item.title}}</view>
+          
+          <view class="course-meta">
+            <text class="meta-tag category-badge badge badge-primary">{{item.categoryName}}</text>
+            <text class="meta-time">{{item.startTime}}</text>
+          </view>
+          
+          <view class="course-desc">{{item.description}}</view>
+          
+          <view class="course-stats">
+            <text class="stat-item">
+              <text class="icon">📍</text>{{item.location}}
+            </text>
+            <text class="stat-item">
+              <text class="icon">👥</text>{{item.bookedCount}}/{{item.capacity}}
+            </text>
+          </view>
+        </view>
+      </view>
+    </block>
+    
+    <!-- 无数据提示 -->
+    <view wx:if="{{courses.length === 0 && !loading}}" class="no-data">
+      <view class="no-data-icon">📭</view>
+      <view class="no-data-text">暂无相关课程</view>
+    </view>
+  </view>
+
+  <!-- 加载更多 -->
+  <view wx:if="{{hasMore && courses.length > 0}}" class="load-more" bindtap="loadMore">
+    {{loading ? '加载中...' : '点击加载更多'}}
+  </view>
+  
+  <view wx:elif="{{!hasMore && courses.length > 0}}" class="load-more">
+    已加载全部课程
+  </view>
+</view>

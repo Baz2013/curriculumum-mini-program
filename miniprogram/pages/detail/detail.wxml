@@ -1,0 +1,110 @@
+<!--detail.wxml-->
+<view class="container">
+  <!-- 课程封面图片 -->
+  <image class="cover-image" src="{{courseInfo.image || '/images/course-placeholder.jpg'}}" mode="aspectFill"></image>
+  
+  <!-- 基本信息 -->
+  <view class="info-section card">
+    <view class="section-header">
+      <text class="title-lg">{{courseInfo.title}}</text>
+      <view class="price-tag">¥{{courseInfo.price}}</view>
+    </view>
+    
+    <view class="tags-row">
+      <text class="tag badge badge-primary">{{courseInfo.categoryName}}</text>
+      <text class="tag badge badge-success">{{courseInfo.status === 'available' ? '可预约' : '已满员'}}</text>
+    </view>
+    
+    <view class="divider"></view>
+    
+    <view class="info-grid">
+      <view class="grid-item">
+        <text class="label">讲师：</text>
+        <text class="value">{{courseInfo.teacher}}</text>
+      </view>
+      <view class="grid-item">
+        <text class="label">时长：</text>
+        <text class="value">{{duration}}</text>
+      </view>
+      <view class="grid-item">
+        <text class="label">地点：</text>
+        <text class="value">{{courseInfo.location}}</text>
+      </view>
+      <view class="grid-item">
+        <text class="label">容量：</text>
+        <text class="value">{{courseInfo.bookedCount}}/{{courseInfo.capacity}}人</text>
+      </view>
+    </view>
+  </view>
+  
+  <!-- 上课时间 -->
+  <view class="time-section card">
+    <view class="card-header">
+      <text class="title-md">上课时间</text>
+    </view>
+    <view class="time-display">
+      <view class="date-box">
+        <text class="day">{{startDate.day}}</text>
+        <text class="month-year">{{startDate.monthYear}}</text>
+      </view>
+      <view class="time-detail">
+        <text class="time-range">{{startTime}} - {{endTime}}</text>
+        <text class="weekday">{{weekDay}}</text>
+      </view>
+    </view>
+  </view>
+  
+  <!-- 课程介绍 -->
+  <view class="desc-section card">
+    <view class="card-header">
+      <text class="title-md">课程介绍</text>
+    </view>
+    <view class="desc-content">
+      <rich-text nodes="{{courseInfo.description}}"></rich-text>
+    </view>
+  </view>
+  
+  <!-- 适用人群 -->
+  <view class="target-section card">
+    <view class="card-header">
+      <text class="title-md">适用人群</text>
+    </view>
+    <view class="target-tags">
+      <block wx:for="{{targets}}" wx:key="index">
+        <text class="target-tag">{{item}}</text>
+      </block>
+    </view>
+  </view>
+  
+  <!-- 温馨提示 -->
+  <view class="tips-section card">
+    <view class="card-header">
+      <text class="title-md">温馨提示</text>
+    </view>
+    <view class="tips-content">
+      <view class="tip-item">• 请提前10分钟到达上课地点签到</view>
+      <view class="tip-item">• 如需取消预约，请在开课前24小时以上操作</view>
+      <view class="tip-item">• 缺席超过3次将影响后续报名资格</view>
+      <view class="tip-item">• 具体安排以实际通知为准</view>
+    </view>
+  </view>
+  
+  <!-- 底部固定按钮区 -->
+  <view class="bottom-action">
+    <view class="action-left">
+      <view class="contact-btn" bindtap="contactTeacher">
+        <text class="icon">💬</text>
+        <text>咨询</text>
+      </view>
+    </view>
+    <view class="action-right">
+      <button 
+        class="book-btn btn btn-primary btn-large" 
+        disabled="{{isBooked || courseInfo.bookedCount >= courseInfo.capacity}}"
+        bindtap="handleBooking"
+      >
+        {{bookingBtnText}}
+      </button>
+    </view>
+  </view>
+</view>

@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>课程预约管理系统 - 管理后台</title>
+    <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+    <div class="layout">
+        <!-- 侧边导航栏 -->
+        <aside class="sidebar">
+            <div class="logo">
+                <h2>📚 课程管理</h2>
+            </div>
+            <nav class="nav-menu">
+                <ul>
+                    <li class="active" onclick="switchSection('dashboard')">
+                        <span class="icon">📊</span>
+                        <span>数据概览</span>
+                    </li>
+                    <li onclick="switchSection('courses')">
+                        <span class="icon">📖</span>
+                        <span>课程管理</span>
+                    </li>
+                    <li onclick="switchSection('bookings')">
+                        <span class="icon">📋</span>
+                        <span>预约记录</span>
+                    </li>
+                    <li onclick="switchSection('users')">
+                        <span class="icon">👥</span>
+                        <span>用户管理</span>
+                    </li>
+                </ul>
+            </nav>
+        </aside>
+
+        <!-- 主内容区 -->
+        <main class="main-content">
+            <!-- 顶部标题栏 -->
+            <header class="header">
+                <h1 id="pageTitle">数据概览</h1>
+                <div class="header-actions">
+                    <button class="btn-refresh" onclick="refreshData()">🔄 刷新</button>
+                </div>
+            </header>
+
+            <!-- Dashboard Section -->
+            <section id="dashboard" class="content-section active">
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon blue">📚</div>
+                        <div class="stat-info">
+                            <div class="stat-value" id="totalCourses">-</div>
+                            <div class="stat-label">总课程数</div>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon green">✅</div>
+                        <div class="stat-info">
+                            <div class="stat-value" id="totalBookings">-</div>
+                            <div class="stat-label">总预约数</div>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon purple">👥</div>
+                        <div class="stat-info">
+                            <div class="stat-value" id="totalUsers">-</div>
+                            <div class="stat-label">总用户数</div>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon orange">📈</div>
+                        <div class="stat-info">
+                            <div class="stat-value" id="todayBookings">-</div>
+                            <div class="stat-label">今日新增</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="charts-container">
+                    <div class="chart-card">
+                        <h3>最近7天预约趋势</h3>
+                        <canvas id="weeklyChart"></canvas>
+                    </div>
+                    <div class="chart-card">
+                        <h3>课程分类分布</h3>
+                        <canvas id="categoryChart"></canvas>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Courses Management Section -->
+            <section id="courses" class="content-section">
+                <div class="toolbar">
+                    <button class="btn-primary" onclick="showAddCourseModal()">
+                        ➕ 新增课程
+                    </button>
+                    <div class="filter-controls">
+                        <select id="courseFilter" onchange="filterCourses()">
+                            <option value="">全部状态</option>
+                            <option value="published">已发布</option>
+                            <option value="draft">草稿</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="table-responsive">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>课程名称</th>
+                                <th>分类</th>
+                                <th>讲师</th>
+                                <th>开始时间</th>
+                                <th>容量</th>
+                                <th>已预约</th>
+                                <th>价格</th>
+                                <th>状态</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="coursesTableBody">
+                            <tr>
+                                <td colspan="10" style="text-align:center;">加载中...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                
+                <div class="pagination" id="coursesPagination"></div>
+            </section>
+
+            <!-- Bookings Management Section -->
+            <section id="bookings" class="content-section">
+                <div class="toolbar">
+                    <div class="filter-controls">
+                        <select id="bookingStatusFilter" onchange="filterBookings()">
+                            <option value="">全部状态</option>
+                            <option value="confirmed">已确认</option>
+                            <option value="cancelled">已取消</option>
+                        </select>
+                        <select id="bookingCourseFilter" onchange="filterBookings()">
+                            <option value="">选择课程</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="table-responsive">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>用户昵称</th>
+                                <th>联系方式</th>
+                                <th>课程名称</th>
+                                <th>上课时间</th>
+                                <th>预约时间</th>
+                                <th>状态</th>
+                                <th>签到</th>
+                            </tr>
+                        </thead>
+                        <tbody id="bookingsTableBody">
+                            <tr>
+                                <td colspan="8" style="text-align:center;">加载中...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                
+                <div class="pagination" id="bookingsPagination"></div>
+            </section>
+
+            <!-- Users Management Section -->
+            <section id="users" class="content-section">
+                <div class="table-responsive">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>头像</th>
+                                <th>昵称</th>
+                                <th>角色</th>
+                                <th>电话</th>
+                                <th>邮箱</th>
+                                <th>预约次数</th>
+                                <th>注册时间</th>
+                            </tr>
+                        </thead>
+                        <tbody id="usersTableBody">
+                            <tr>
+                                <td colspan="8" style="text-align:center;">加载中...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                
+                <div class="pagination" id="usersPagination"></div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Modal Dialog -->
+    <div id="modalOverlay" class="modal-overlay" onclick="closeModal(event)">
+        <div class="modal-dialog" onclick="event.stopPropagation()">
+            <div class="modal-header">
+                <h3 id="modalTitle">新增课程</h3>
+                <button class="modal-close" onclick="closeModalDirectly()">×</button>
+            </div>
+            <div class="modal-body" id="modalContent">
+                <!-- 动态内容 -->
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script src="../js/main.js"></script>
+</body>
+</html>

@@ -1,0 +1,206 @@
+/* detail.wxss */
+
+.cover-image {
+  width: 100%;
+  height: 400rpx;
+  object-fit: cover;
+}
+
+.info-section {
+  margin-top: -40rpx;
+  position: relative;
+  z-index: 10;
+  border-radius: 24rpx 24rpx 0 0;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 20rpx;
+}
+
+.price-tag {
+  font-size: 44rpx;
+  font-weight: bold;
+  color: #ff4d4f;
+}
+
+.tags-row {
+  display: flex;
+  gap: 16rpx;
+  margin-bottom: 20rpx;
+}
+
+.tag {
+  padding: 6rpx 16rpx;
+  border-radius: 6rpx;
+  font-size: 24rpx;
+}
+
+.info-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 24rpx;
+}
+
+.grid-item {
+  display: flex;
+  align-items: center;
+  font-size: 28rpx;
+}
+
+.label {
+  color: #999;
+  margin-right: 8rpx;
+}
+
+.value {
+  color: #333;
+  font-weight: 500;
+}
+
+/* 时间区块 */
+.time-section {
+  margin-top: 24rpx;
+}
+
+.time-display {
+  display: flex;
+  align-items: center;
+  gap: 32rpx;
+  padding: 20rpx 0;
+}
+
+.date-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 140rpx;
+  height: 140rpx;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 16rpx;
+  color: white;
+}
+
+.day {
+  font-size: 56rpx;
+  font-weight: bold;
+  line-height: 1;
+}
+
+.month-year {
+  font-size: 24rpx;
+  margin-top: 8rpx;
+}
+
+.time-detail {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8rpx;
+}
+
+.time-range {
+  font-size: 36rpx;
+  font-weight: bold;
+  color: #333;
+}
+
+.weekday {
+  font-size: 26rpx;
+  color: #999;
+}
+
+/* 内容区块 */
+.desc-section,
+.target-section,
+.tips-section {
+  margin-top: 24rpx;
+}
+
+.desc-content {
+  font-size: 28rpx;
+  line-height: 1.8;
+  color: #666;
+}
+
+.target-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16rpx;
+}
+
+.target-tag {
+  padding: 12rpx 24rpx;
+  background: #f0f5ff;
+  color: #1890ff;
+  border-radius: 32rpx;
+  font-size: 26rpx;
+}
+
+.tips-content {
+  font-size: 26rpx;
+  line-height: 1.8;
+  color: #666;
+}
+
+.tip-item {
+  margin-bottom: 12rpx;
+  padding-left: 8rpx;
+}
+
+/* 底部操作栏 */
+.bottom-action {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  padding: 16rpx 24rpx calc(env(safe-area-inset-bottom) + 16rpx);
+  background: white;
+  box-shadow: 0 -4rpx 16rpx rgba(0, 0, 0, 0.08);
+  z-index: 100;
+}
+
+.action-left {
+  flex-shrink: 0;
+  margin-right: 24rpx;
+}
+
+.contact-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4rpx;
+  font-size: 22rpx;
+  color: #666;
+}
+
+.contact-btn .icon {
+  font-size: 40rpx;
+}
+
+.action-right {
+  flex: 1;
+}
+
+.book-btn {
+  width: 100%;
+  height: 96rpx;
+  line-height: 96rpx;
+  font-size: 32rpx;
+  font-weight: bold;
+  border-radius: 48rpx;
+}
+
+.book-btn[disabled] {
+  background: #d9d9d9;
+  color: #999;
+}
+
+.book-btn:not([disabled]):active {
+  opacity: 0.8;
+}

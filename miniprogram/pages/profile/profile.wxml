@@ -1,0 +1,105 @@
+<!--profile.wxml-->
+<view class="container">
+  <!-- 用户头部信息 -->
+  <view class="user-header">
+    <view class="avatar-wrapper">
+      <open-data type="userAvatarUrl" class="avatar"></open-data>
+    </view>
+    <view class="user-info">
+      <view class="nickname">
+        <open-data type="userNickName"></open-data>
+      </view>
+      <view class="join-date">加入于 {{userInfo.joinDate}}</view>
+    </view>
+  </view>
+
+  <!-- 学习统计数据 -->
+  <view class="stats-section card">
+    <view class="stats-grid">
+      <view class="stat-item">
+        <text class="stat-number">{{stats.totalBookings}}</text>
+        <text class="stat-label">总预约次数</text>
+      </view>
+      <view class="stat-divider"></view>
+      <view class="stat-item">
+        <text class="stat-number">{{stats.attendedCount}}</text>
+        <text class="stat-label">已参与课程</text>
+      </view>
+      <view class="stat-divider"></view>
+      <view class="stat-item">
+        <text class="stat-number">{{studyHours}}</text>
+        <text class="stat-label">累计学习(h)</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 功能菜单 -->
+  <view class="menu-section card">
+    <view class="menu-item" bindtap="navigateTo" data-url="/pages/my-bookings/my-bookings">
+      <view class="menu-left">
+        <text class="menu-icon">📋</text>
+        <text class="menu-title">我的预约</text>
+      </view>
+      <view class="menu-arrow">›</view>
+    </view>
+    
+    <view class="menu-item" bindtap="showComingSoon">
+      <view class="menu-left">
+        <text class="menu-icon">⭐</text>
+        <text class="menu-title">收藏夹</text>
+      </view>
+      <view class="menu-arrow">›</view>
+    </view>
+    
+    <view class="menu-item" bindtap="showComingSoon">
+      <view class="menu-left">
+        <text class="menu-icon">📝</text>
+        <text class="menu-title">学习笔记</text>
+      </view>
+      <view class="menu-arrow">›</view>
+    </view>
+    
+    <view class="menu-item" bindtap="showComingSoon">
+      <view class="menu-left">
+        <text class="menu-icon">🎁</text>
+        <text class="menu-title">优惠券</text>
+      </view>
+      <view class="menu-badge">2</view>
+      <view class="menu-arrow">›</view>
+    </view>
+  </view>
+
+  <!-- 其他设置 -->
+  <view class="settings-section card">
+    <view class="menu-item" bindtap="showComingSoon">
+      <view class="menu-left">
+        <text class="menu-icon">🔔</text>
+        <text class="menu-title">消息通知</text>
+      </view>
+      <view class="menu-switch">
+        <switch checked="{{notificationEnabled}}" bindchange="toggleNotification" />
+      </view>
+    </view>
+    
+    <view class="menu-item" bindtap="showAbout">
+      <view class="menu-left">
+        <text class="menu-icon">ℹ️</text>
+        <text class="menu-title">关于我们</text>
+      </view>
+      <view class="menu-arrow">›</view>
+    </view>
+    
+    <view class="menu-item" bindtap="clearCache">
+      <view class="menu-left">
+        <text class="menu-icon">🧹</text>
+        <text class="menu-title">清除缓存</text>
+      </view>
+      <text class="cache-size">{{cacheSize}}</text>
+    </view>
+  </view>
+
+  <!-- 版本信息 -->
+  <view class="version-info">
+    <text>当前版本 v1.0.0</text>
+  </view>
+</view>
