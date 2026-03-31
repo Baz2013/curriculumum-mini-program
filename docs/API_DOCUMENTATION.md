@@ -4,9 +4,12 @@
 
 ## 基础信息
 
-- **Base URL**: `http://localhost:3000/api`
+- **Base URL**:
+  - 本地开发：`http://localhost:3000/api`
+  - 公网部署：`http://your-domain-or-ip:3000/api` （替换为你的实际域名或IP）
 - **响应格式**: JSON
 - **字符编码**: UTF-8
+- **认证方式**: 当前版本无需认证（后续会增加JWT Token认证）
 
 ---
 
