@@ -468,7 +468,30 @@ async function saveNewCourse(event) {
     
     const form = event.target;
     const formData = new FormData(form);
-    const data = Object.fromEntries(formData.entries());
+    const rawData = Object.fromEntries(formData.entries());
+    
+    // 转换时间格式：从 YYYY-MM-DDTHH:mm 到 YYYY-MM-DD HH:mm:ss
+    const convertTimeFormat = (timeStr) => {
+        if (!timeStr) return '';
+        return timeStr.replace('T', ' ') + ':00';
+    };
+    
+    // 构造符合后端预期的数据格式
+    const data = {
+        title: rawData.title?.trim(),
+        description: rawData.description?.trim() || '',
+        categoryId: rawData.categoryId ? parseInt(rawData.categoryId) : null,
+        teacher: rawData.teacher?.trim() || '',
+        location: rawData.location?.trim() || '',
+        startTime: convertTimeFormat(rawData.startTime),
+        endTime: convertTimeFormat(rawData.endTime),
+        capacity: rawData.capacity ? parseInt(rawData.capacity) : 50,
+        price: rawData.price ? parseFloat(rawData.price) : 0,
+        image: rawData.image?.trim() || ''
+    };
+    
+    // 打印发送的数据便于调试
+    console.log('Submitting course data:', data);
     
     try {
         const response = await fetch(`${API_BASE_URL}/admin/courses`, {
@@ -481,16 +504,21 @@ async function saveNewCourse(event) {
         
         const result = await response.json();
         
-        if (result.success) {
+        console.log('Response:', result);
+        
+        if (response.ok && result.success) {
             alert('课程创建成功！');
             closeModalDirectly();
             loadCourses();
         } else {
-            alert(result.message || '创建失败');
+            // 显示更详细的错误信息
+            const errorMsg = result.message || '未知错误';
+            console.error('Save course failed:', errorMsg);
+            alert('创建失败: ' + errorMsg);
         }
     } catch (error) {
-        console.error('保存课程失败:', error);
-        alert('保存失败，请稍后重试');
+        console.error('Network error saving course:', error);
+        alert('网络请求失败，请检查网络连接后重试');
     }
 }
 

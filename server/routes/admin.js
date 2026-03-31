@@ -194,32 +194,61 @@ router.post('/courses', verifyAdmin, async (req, res) => {
       image
     } = req.body;
 
-    if (!title || !startTime || !endTime) {
-      return res.status(400).json({ success: false, message: '必填项缺失' });
+    // 参数验证
+    if (!title || !title.trim()) {
+      return res.status(400).json({ success: false, message: '课程名称不能为空' });
     }
+    if (!startTime || !endTime) {
+      return res.status(400).json({ success: false, message: '开始时间和结束时间是必填项' });
+    }
+
+    // 类型转换
+    const parsedCategoryId = categoryId ? parseInt(categoryId) : null;
+    const parsedCapacity = capacity ? parseInt(capacity) : 50;
+    const parsedPrice = price ? parseFloat(price) : 0;
 
     const db = getInstance();
 
     await new Promise((resolve, reject) => {
       const sql = `
-        INSERT INTO courses (title, description, category_id, teacher, location,
-                            start_time, end_time, capacity, price, image, status)
+        INSERT INTO courses (
+          title, description, category_id, teacher, location,
+          start_time, end_time, capacity, price, image, status
+        )
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'published')
       `;
-      db.run(
-        sql,
-        [title, description, categoryId, teacher, location, startTime, endTime, capacity, price, image],
-        function(err) {
-          if (err) reject(err);
-          else resolve(this.lastID);
+      
+      const params = [
+        title.trim(),
+        description || '',
+        parsedCategoryId,
+        teacher || '',
+        location || '',
+        startTime,
+        endTime,
+        parsedCapacity,
+        parsedPrice,
+        image || ''
+      ];
+
+      db.run(sql, params, function(err) {
+        if (err) {
+          console.error('Database error inserting course:', err);
+          reject(err);
+        } else {
+          console.log('Course created successfully with ID:', this.lastID);
+          resolve(this.lastID);
         }
-      );
+      });
     });
 
     res.json({ success: true, message: '课程创建成功' });
   } catch (error) {
     console.error('Create course error:', error);
-    res.status(500).json({ success: false, message: '创建课程失败' });
+    res.status(500).json({
+      success: false,
+      message: '创建课程失败: ' + error.message
+    });
   }
 });
 
