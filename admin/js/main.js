@@ -3,8 +3,8 @@
  * 管理后台主要脚本
  */
 
-// API基础URL
-const API_BASE_URL = 'http://localhost:3000/api';
+// API基础URL - 使用相对路径，自动适应当前访问的域名
+const API_BASE_URL = '/api';
 
 // 当前激活的部分
 let currentSection = 'dashboard';
