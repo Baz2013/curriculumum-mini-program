@@ -22,20 +22,14 @@
     "list": [
       {
         "pagePath": "pages/index/index",
-        "iconPath": "images/home.png",
-        "selectedIconPath": "images/home-active.png",
         "text": "首页"
       },
       {
         "pagePath": "pages/my-bookings/my-bookings",
-        "iconPath": "images/bookmark.png",
-        "selectedIconPath": "images/bookmark-active.png",
         "text": "我的预约"
       },
       {
         "pagePath": "pages/profile/profile",
-        "iconPath": "images/user.png",
-        "selectedIconPath": "images/user-active.png",
         "text": "个人中心"
       }
     ]

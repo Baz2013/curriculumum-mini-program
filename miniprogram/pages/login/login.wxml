@@ -32,10 +32,10 @@
         value="{{shareCode}}"
         bindinput="onShareCodeInput"
       />
-      <button 
-        class="btn-confirm" 
+      <button
+        class="btn-confirm"
         bindtap="verifyAndBind"
-        disabled={!{{shareCode}}}"
+        disabled="{{!shareCode}}"
       >
         确定
       </button>
