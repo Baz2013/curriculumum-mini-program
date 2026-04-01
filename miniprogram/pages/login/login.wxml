@@ -3,52 +3,37 @@
   <view class="header">
     <view class="logo">📚</view>
     <text class="title">课程预约平台</text>
-    <text class="welcome-text">欢迎回来</text>
+    <text class="subtitle">一键登录，即刻开始学习之旅</text>
   </view>
 
-  <view class="login-methods">
-    <!-- 微信登录 -->
-    <button 
-      class="btn-login btn-weixin" 
+  <view class="login-area">
+    <button
+      class="btn-login btn-weixin"
       open-type="getUserInfo"
       bindgetuserinfo="onGetUserInfo"
       hover-class="btn-hover"
     >
       <text class="btn-icon">💬</text>
-      <text class="btn-text">微信授权登录</text>
+      <text class="btn-text">微信快捷登录</text>
     </button>
 
-    <!-- 分享码登录 -->
-    <view class="divider">
-      <text class="divider-line"></text>
-      <text class="divider-text">或</text>
-      <text class="divider-line"></text>
-    </view>
-
-    <view class="share-code-input">
-      <input 
-        class="input-code" 
-        placeholder="请输入分享码" 
-        value="{{shareCode}}"
-        bindinput="onShareCodeInput"
-      />
-      <button
-        class="btn-confirm"
-        bindtap="verifyAndBind"
-        disabled="{{!shareCode}}"
-      >
-        确定
-      </button>
-    </view>
-
-    <view class="tips">
-      <text class="tip-text">💡 提示：</text>
-      <text class="tip-desc">如果您是通过朋友分享的链接进入，请直接点击上方"微信授权登录"，系统会自动识别。</text>
+    <view class="features">
+      <view class="feature-item">
+        <text class="feature-icon">✓</text>
+        <text class="feature-text">免注册，一步到位</text>
+      </view>
+      <view class="feature-item">
+        <text class="feature-icon">✓</text>
+        <text class="feature-text">海量优质课程任选</text>
+      </view>
+      <view class="feature-item">
+        <text class="feature-icon">✓</text>
+        <text class="feature-text">智能匹配个性化推荐</text>
+      </view>
     </view>
   </view>
 
   <view class="footer">
-    <text class="footer-text">还没有账号？</text>
-    <text class="link-register" bindtap="goToRegister">立即注册</text>
+    <text class="agreement">登录即表示同意《用户协议》和《隐私政策》</text>
   </view>
 </view>

@@ -213,6 +213,142 @@ router.put('/approve-registration/:id', async (req, res) => {
 });
 
 /**
+ * POST /api/auto-login
+ * 自动登录（新用户自动注册，老用户直接登录）
+ */
+router.post('/auto-login', async (req, res) => {
+  const db = getDbConnection();
+  if (!db) {
+    return res.status(500).json({ error: '数据库连接失败' });
+  }
+
+  try {
+    const { code, userInfo, shareCode } = req.body;
+
+    if (!code || !userInfo) {
+      return res.status(400).json({ error: '缺少必要参数' });
+    }
+
+    // 注意：这里简化处理，实际应用中应该用code换取真实的openid
+    // 由于这是演示项目，我们直接使用code作为openid的唯一标识
+    const openid = `WX_${code}`;
+
+    // 检查用户是否存在
+    const existingUser = await new Promise((resolve, reject) => {
+      db.get('SELECT * FROM users WHERE openid = ?', [openid], (err, row) => {
+        if (err) reject(err);
+        else resolve(row);
+      });
+    });
+
+    let user;
+    let isNewUser = false;
+
+    if (existingUser) {
+      // 老用户，直接返回
+      user = existingUser;
+    } else {
+      // 新用户，自动创建账户（待审批状态）
+      isNewUser = true;
+      
+      // 生成唯一分享码
+      const generateUniqueShareCode = async () => {
+        let code;
+        let attempts = 0;
+        while (attempts < 10) {
+          code = Math.random().toString(36).substring(2, 8).toUpperCase();
+          const exists = await new Promise((resolve) => {
+            db.get('SELECT id FROM users WHERE share_code = ?', [code], (err, row) => {
+              resolve(!!row);
+            });
+          });
+          if (!exists) return code;
+          attempts++;
+        }
+        return code;
+      };
+
+      const newUserShareCode = await generateUniqueShareCode();
+
+      // 处理推荐人
+      let referrerId = null;
+      if (shareCode) {
+        const referrer = await new Promise((resolve, reject) => {
+          db.get(
+            'SELECT id FROM users WHERE share_code = ? AND approval_status = ?',
+            [shareCode, 'approved'],
+            (err, row) => {
+              if (err) reject(err);
+              else resolve(row);
+            }
+          );
+        });
+        if (referrer) {
+          referrerId = referrer.id;
+        }
+      }
+
+      // 创建新用户
+      const userId = await new Promise((resolve, reject) => {
+        db.run(
+          `INSERT INTO users (openid, nickname, avatar_url, role, approval_status, share_code, referrer_id, registration_source)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+          [
+            openid,
+            userInfo.nickName || '微信用户',
+            userInfo.avatarUrl || '',
+            'student',
+            'pending', // 新用户默认为待审批状态
+            newUserShareCode,
+            referrerId,
+            'mini_program'
+          ],
+          function(err) {
+            if (err) reject(err);
+            else resolve(this.lastID);
+          }
+        );
+      });
+
+      // 获取刚创建的用户信息
+      user = await new Promise((resolve, reject) => {
+        db.get('SELECT * FROM users WHERE id = ?', [userId], (err, row) => {
+          if (err) reject(err);
+          else resolve(row);
+        });
+      });
+    }
+
+    // 生成JWT token（简单实现，生产环境应使用jsonwebtoken）
+    const token = Buffer.from(JSON.stringify({
+      userId: user.id,
+      openid: user.openid,
+      timestamp: Date.now()
+    })).toString('base64');
+
+    res.json({
+      success: true,
+      token,
+      user: {
+        id: user.id,
+        nickname: user.nickname,
+        avatarUrl: user.avatar_url,
+        role: user.role,
+        approvalStatus: user.approval_status,
+        shareCode: user.share_code,
+        createdAt: user.created_at
+      },
+      isNewUser,
+      message: isNewUser ? '账户已创建，请等待管理员审批' : '登录成功'
+    });
+
+  } catch (error) {
+    console.error('自动登录失败:', error);
+    res.status(500).json({ error: '登录失败，请稍后重试' });
+  }
+});
+
+/**
  * POST /api/bind-wechat
  * 绑定微信OpenID（用户扫码登录时调用）
  */
