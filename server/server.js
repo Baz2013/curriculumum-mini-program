@@ -9,6 +9,7 @@ const bodyParser = require('body-parser');
 const path = require('path');
 
 // 引入路由
+const authRoutes = require('./routes/auth');
 const courseRoutes = require('./routes/courses');
 const bookingRoutes = require('./routes/bookings');
 const userRoutes = require('./routes/users');
@@ -32,6 +33,7 @@ app.use((req, res, next) => {
 });
 
 // API路由
+app.use('/api', authRoutes);
 app.use('/api/courses', courseRoutes);
 app.use('/api/bookings', bookingRoutes);
 app.use('/api/user', userRoutes);

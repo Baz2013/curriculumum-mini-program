@@ -1,0 +1,54 @@
+<!-- login.wxml -->
+<view class="container">
+  <view class="header">
+    <view class="logo">📚</view>
+    <text class="title">课程预约平台</text>
+    <text class="welcome-text">欢迎回来</text>
+  </view>
+
+  <view class="login-methods">
+    <!-- 微信登录 -->
+    <button 
+      class="btn-login btn-weixin" 
+      open-type="getUserInfo"
+      bindgetuserinfo="onGetUserInfo"
+      hover-class="btn-hover"
+    >
+      <text class="btn-icon">💬</text>
+      <text class="btn-text">微信授权登录</text>
+    </button>
+
+    <!-- 分享码登录 -->
+    <view class="divider">
+      <text class="divider-line"></text>
+      <text class="divider-text">或</text>
+      <text class="divider-line"></text>
+    </view>
+
+    <view class="share-code-input">
+      <input 
+        class="input-code" 
+        placeholder="请输入分享码" 
+        value="{{shareCode}}"
+        bindinput="onShareCodeInput"
+      />
+      <button 
+        class="btn-confirm" 
+        bindtap="verifyAndBind"
+        disabled={!{{shareCode}}}"
+      >
+        确定
+      </button>
+    </view>
+
+    <view class="tips">
+      <text class="tip-text">💡 提示：</text>
+      <text class="tip-desc">如果您是通过朋友分享的链接进入，请直接点击上方"微信授权登录"，系统会自动识别。</text>
+    </view>
+  </view>
+
+  <view class="footer">
+    <text class="footer-text">还没有账号？</text>
+    <text class="link-register" bindtap="goToRegister">立即注册</text>
+  </view>
+</view>

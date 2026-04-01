@@ -12,12 +12,20 @@ Page({
     duration: '', // 时长
     targets: ['初学者', '进阶学员', '兴趣爱好者'], // 适用人群
     isBooked: false, // 是否已预约
-    bookingStatus: 'idle' // idle, submitting, success
+    bookingStatus: 'idle', // idle, submitting, success
+    userShareCode: '' // 当前用户的分享码
   },
 
   onLoad(options) {
     if (options.id) {
       this.setData({ courseId: parseInt(options.id) })
+      
+      // 从全局数据获取用户的分享码
+      const userInfo = app.globalData.userInfo || {}
+      if (userInfo.share_code) {
+        this.setData({ userShareCode: userInfo.share_code })
+      }
+      
       this.getCourseDetail()
       this.checkBookingStatus()
     } else {
@@ -28,6 +36,46 @@ Page({
       setTimeout(() => {
         wx.navigateBack()
       }, 1500)
+    }
+  },
+  
+  /**
+   * 微信分享配置
+   */
+  onShareAppMessage() {
+    const { courseInfo, userShareCode } = this.data
+    
+    return {
+      title: courseInfo.title || '精彩课程等你来',
+      path: `/pages/detail/detail?id=${this.data.courseId}${userShareCode ? '&shareCode=' + userShareCode : ''}`,
+      imageUrl: courseInfo.image || '',
+      success: (res) => {
+        console.log('分享成功')
+        wx.showToast({
+          title: '分享成功',
+          icon: 'success'
+        })
+      },
+      fail: (err) => {
+        console.error('分享失败:', err)
+        wx.showToast({
+          title: '分享失败',
+          icon: 'none'
+        })
+      }
+    }
+  },
+  
+  /**
+   * 分享到朋友圈（仅支持安卓）
+   */
+  onShareTimeline() {
+    const { courseInfo } = this.data
+    
+    return {
+      title: courseInfo.title || '精彩课程等你来',
+      query: `id=${this.data.courseId}`,
+      imageUrl: courseInfo.image || ''
     }
   },
 

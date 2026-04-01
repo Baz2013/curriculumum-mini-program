@@ -318,16 +318,43 @@ function renderBookings(bookings) {
 async function loadUsers() {
     try {
         const response = await fetch(
-            `${API_BASE_URL}/admin/users?page=${currentPage}&pageSize=${pageSize}`
+            `${API_BASE_URL}/all-users?page=${currentPage}&pageSize=${pageSize}`
         );
         const result = await response.json();
         
         if (result.success) {
-            renderUsers(result.list);
-            renderPagination('usersPagination', result.pagination, loadUsers);
+            renderUsers(result.users);
+            
+            // 同时加载待审批数量
+            loadPendingCount();
         }
     } catch (error) {
         console.error('加载用户列表失败:', error);
+    }
+}
+
+/**
+ * 加载待审批数量
+ */
+async function loadPendingCount() {
+    try {
+        const response = await fetch(`${API_BASE_URL}/pending-registrations`);
+        const result = await response.json();
+        
+        if (result.success) {
+            const countElement = document.getElementById('pendingAlertCount');
+            if (countElement) {
+                countElement.textContent = result.registrations.length;
+                
+                // 如果有待审批申请，显示警告横幅；否则隐藏
+                const alertBanner = document.querySelector('.alert-banner');
+                if (alertBanner) {
+                    alertBanner.style.display = result.registrations.length > 0 ? 'block' : 'none';
+                }
+            }
+        }
+    } catch (error) {
+        console.error('加载待审批数量失败:', error);
     }
 }
 
@@ -349,13 +376,190 @@ function renderUsers(users) {
                 <img src="${user.avatar_url}" alt="" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect fill=%22%23ddd%22 width=%22100%22 height=%22100%22/></svg>'">
             </td>
             <td>${escapeHtml(user.nickname)}</td>
-            <td>${user.role === 'admin' ? '管理员' : '普通用户'}</td>
+            <td>${user.approval_status === 'approved' ?
+                  (user.role === 'admin' ? '管理员' : '学生') :
+                  user.approval_status === 'rejected' ? '已拒绝' : '待审核'}
+            </td>
             <td>${escapeHtml(user.phone || '-')}</td>
             <td>${escapeHtml(user.email || '-')}</td>
             <td>${user.booking_count || 0}</td>
             <td>${formatDateTime(user.created_at)}</td>
         </tr>
     `).join('');
+}
+
+/**
+ * 切换用户管理标签
+ */
+function switchUserTab(tab) {
+    // 移除所有按钮的活动类
+    document.querySelectorAll('#users .tabs .tab-btn').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    
+    // 为当前点击的按钮添加活动类
+    event.currentTarget.classList.add('active');
+    
+    // 隐藏所有子部分
+    document.querySelectorAll('#users .subsection').forEach(subsection => {
+        subsection.classList.remove('active');
+    });
+    
+    // 根据选择的标签显示对应的子部分
+    if (tab === 'registered') {
+        document.getElementById('registeredUsersSubsection').classList.add('active');
+        loadUsers();
+    } else if (tab === 'registrations') {
+        document.getElementById('registrationsApprovalSubsection').classList.add('active');
+        loadRegistrations();
+    }
+}
+
+/**
+ * 加载待审批注册申请
+ */
+async function loadRegistrations() {
+    try {
+        const response = await fetch(`${API_BASE_URL}/pending-registrations`);
+        const result = await response.json();
+        
+        if (result.success) {
+            renderRegistrations(result.registrations);
+        }
+    } catch (error) {
+        console.error('加载注册申请失败:', error);
+    }
+}
+
+/**
+ * 渲染注册申请表格
+ */
+function renderRegistrations(registrations) {
+    const tbody = document.getElementById('registrationsTableBody');
+    
+    if (registrations.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:#999;">暂无待审批申请</td></tr>';
+        return;
+    }
+    
+    tbody.innerHTML = registrations.map(registration => `
+        <tr>
+            <td>${registration.id}</td>
+            <td>${escapeHtml(registration.nickname)}</td>
+            <td>${escapeHtml(registration.phone || '-')}</td>
+            <td>${escapeHtml(registration.email || '-')}</td>
+            <td>${escapeHtml(registration.reason || '-')}</td>
+            <td>${formatDateTime(registration.created_at)}</td>
+            <td>
+                <span class="badge warning">${getStatusText(registration.status)}</span>
+            </td>
+            <td>
+                <div class="action-buttons">
+                    <button class="btn-success" onclick="approveRegistration(${registration.id})">通过</button>
+                    <button class="btn-danger" onclick="showRejectReasonDialog(${registration.id})">拒绝</button>
+                </div>
+            </td>
+        </tr>
+    `).join('');
+}
+
+/**
+ * 获取状态文本
+ */
+function getStatusText(status) {
+    const statusMap = {
+        'pending': '待审核',
+        'approved': '已通过',
+        'rejected': '已拒绝'
+    };
+    return statusMap[status] || status;
+}
+
+/**
+ * 通过注册申请
+ */
+async function approveRegistration(id) {
+    if (!confirm('确定要通过这个注册申请吗？')) return;
+    
+    try {
+        const response = await fetch(`${API_BASE_URL}/approve-registration/${id}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                action: 'approve'
+            })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            alert('批准成功！');
+            loadRegistrations();
+            loadPendingCount(); // 更新待审批数量
+        } else {
+            alert(result.message || '操作失败');
+        }
+    } catch (error) {
+        console.error('批准注册申请失败:', error);
+        alert('操作失败，请稍后重试');
+    }
+}
+
+/**
+ * 显示拒绝原因对话框
+ */
+function showRejectReasonDialog(id) {
+    showModal('拒绝理由', `
+        <div class="form-group">
+            <label>请输入拒绝理由：</label>
+            <textarea id="rejectReason" class="form-control" rows="4" placeholder="例如：资料不完整、不符合条件等"></textarea>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn-cancel" onclick="closeModalDirectly()">取消</button>
+            <button type="button" class="btn-submit" onclick="confirmRejection(${id})">确认拒绝</button>
+        </div>
+    `);
+}
+
+/**
+ * 确认拒绝注册申请
+ */
+async function confirmRejection(id) {
+    const rejectReason = document.getElementById('rejectReason').value.trim();
+    
+    if (!rejectReason) {
+        alert('请填写拒绝理由');
+        return;
+    }
+    
+    try {
+        const response = await fetch(`${API_BASE_URL}/approve-registration/${id}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                action: 'reject',
+                reason: rejectReason
+            })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            alert('已拒绝该申请');
+            closeModalDirectly();
+            loadRegistrations();
+            loadPendingCount(); // 更新待审批数量
+        } else {
+            alert(result.message || '操作失败');
+        }
+    } catch (error) {
+        console.error('拒绝注册申请失败:', error);
+        alert('操作失败，请稍后重试');
+    }
 }
 
 /**

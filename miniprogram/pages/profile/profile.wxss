@@ -148,6 +148,187 @@
   margin-right: 8rpx;
 }
 
+/* 卡片通用样式 */
+.card {
+  background: white;
+  margin: 24rpx;
+  padding: 32rpx;
+  border-radius: 24rpx;
+  box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.06);
+}
+
+/* 区域标题 */
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24rpx;
+}
+
+.section-title {
+  font-size: 32rpx;
+  font-weight: bold;
+  color: #333;
+}
+
+.more-link {
+  font-size: 26rpx;
+  color: #1890ff;
+}
+
+/* 即将到来的课程 */
+.booking-list {
+  display: flex;
+  flex-direction: column;
+  gap: 24rpx;
+}
+
+.booking-item {
+  display: flex;
+  align-items: center;
+  padding: 24rpx;
+  background: #f8f9fa;
+  border-radius: 16rpx;
+  transition: transform 0.2s ease;
+}
+
+.booking-item:active {
+  transform: scale(0.98);
+}
+
+.booking-date {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 96rpx;
+  height: 96rpx;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 12rpx;
+  margin-right: 24rpx;
+  color: white;
+}
+
+.date-day {
+  font-size: 36rpx;
+  font-weight: bold;
+  line-height: 1;
+}
+
+.date-month {
+  font-size: 20rpx;
+  margin-top: 4rpx;
+  opacity: 0.9;
+}
+
+.booking-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8rpx;
+}
+
+.booking-title {
+  font-size: 28rpx;
+  font-weight: 500;
+  color: #333;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.booking-meta {
+  display: flex;
+  gap: 24rpx;
+}
+
+.meta-text {
+  font-size: 24rpx;
+  color: #999;
+}
+
+.booking-status {
+  padding: 8rpx 16rpx;
+  border-radius: 8rpx;
+  font-size: 22rpx;
+  font-weight: 500;
+}
+
+.status-upcoming {
+  background: #e6f7ff;
+  color: #1890ff;
+}
+
+/* 学习成就 */
+.achievements-section {
+  margin-top: 24rpx;
+}
+
+.achievements-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20rpx;
+}
+
+.achievement-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 32rpx 16rpx;
+  background: #f8f9fa;
+  border-radius: 16rpx;
+  transition: all 0.3s ease;
+}
+
+.achievement-item.achieved {
+  background: linear-gradient(135deg, #fff5e6 0%, #ffe7cc 100%);
+  border: 2rpx solid #ffd591;
+}
+
+.achievement-item.locked {
+  opacity: 0.5;
+  filter: grayscale(1);
+}
+
+.achievement-icon {
+  font-size: 48rpx;
+  margin-bottom: 12rpx;
+}
+
+.achievement-name {
+  font-size: 24rpx;
+  color: #666;
+  text-align: center;
+}
+
+/* 学习偏好 */
+.preferences-section {
+  margin-top: 24rpx;
+}
+
+.categories-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16rpx;
+}
+
+.tag-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 8rpx;
+  padding: 12rpx 24rpx;
+  background: linear-gradient(135deg, #e6f7ff 0%, #bae7ff 100%);
+  border-radius: 32rpx;
+  font-size: 26rpx;
+  color: #1890ff;
+}
+
+.tag-count {
+  font-size: 22rpx;
+  opacity: 0.8;
+}
+
 /* 版本信息 */
 .version-info {
   text-align: center;

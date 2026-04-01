@@ -3,10 +3,20 @@ App({
   globalData: {
     userInfo: null,
     token: '',
-    baseUrl: 'http://43.167.225.6:3000/api'
+    baseUrl: 'http://43.167.225.6:3000/api',
+    launchOptions: {} // 存储小程序启动时的选项参数
   },
 
-  onLaunch() {
+  onLaunch(options) {
+    // 存储启动选项，用于处理分享参数
+    this.globalData.launchOptions = options || {}
+    
+    // 如果有分享码，临时存储供后续使用
+    if (options.query && options.query.shareCode) {
+      wx.setStorageSync('tempShareCode', options.query.shareCode)
+      console.log('检测到分享码:', options.query.shareCode)
+    }
+
     // 展示本地存储能力
     const logs = wx.getStorageSync('logs') || []
     logs.unshift(Date.now())
@@ -25,6 +35,14 @@ App({
         // 发送 res.code 到后台换取 openId, sessionKey, unionId
       }
     })
+  },
+  
+  onShow(options) {
+    // 小程序切前台时也可能携带新的参数（如从聊天窗口重新打开）
+    if (options && options.query && options.query.shareCode) {
+      wx.setStorageSync('tempShareCode', options.query.shareCode)
+      console.log('onShow检测到分享码:', options.query.shareCode)
+    }
   },
 
   /**

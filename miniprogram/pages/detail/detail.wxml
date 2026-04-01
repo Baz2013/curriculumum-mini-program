@@ -96,10 +96,14 @@
         <text class="icon">💬</text>
         <text>咨询</text>
       </view>
+      <button class="share-btn" open-type="share">
+        <text class="icon">➤</text>
+        <text>分享</text>
+      </button>
     </view>
     <view class="action-right">
-      <button 
-        class="book-btn btn btn-primary btn-large" 
+      <button
+        class="book-btn btn btn-primary btn-large"
         disabled="{{isBooked || courseInfo.bookedCount >= courseInfo.capacity}}"
         bindtap="handleBooking"
       >

@@ -26,8 +26,13 @@
       </view>
       <view class="stat-divider"></view>
       <view class="stat-item">
-        <text class="stat-number">{{stats.attendedCount}}</text>
-        <text class="stat-label">已参与课程</text>
+        <text class="stat-number">{{stats.upcomingCount}}</text>
+        <text class="stat-label">待参加</text>
+      </view>
+      <view class="stat-divider"></view>
+      <view class="stat-item">
+        <text class="stat-number">{{stats.completedCount}}</text>
+        <text class="stat-label">已完成</text>
       </view>
       <view class="stat-divider"></view>
       <view class="stat-item">
@@ -37,8 +42,88 @@
     </view>
   </view>
 
+  <!-- 即将到来的课程 -->
+  <view class="card" wx:if="{{recentBookings.length > 0}}">
+    <view class="section-header">
+      <text class="section-title">即将到来</text>
+      <text class="more-link" bindtap="goToBookings">查看全部 ›</text>
+    </view>
+    <view class="booking-list">
+      <view
+        class="booking-item"
+        wx:for="{{recentBookings}}"
+        wx:key="id"
+        bindtap="goToDetail"
+        data-id="{{item.course_id}}"
+      >
+        <view class="booking-date">
+          <text class="date-day">{{item.day}}</text>
+          <text class="date-month">{{item.month}}</text>
+        </view>
+        <view class="booking-info">
+          <text class="booking-title">{{item.course_title}}</text>
+          <view class="booking-meta">
+            <text class="meta-text">📍 {{item.location}}</text>
+            <text class="meta-text">🕒 {{item.time_range}}</text>
+          </view>
+        </view>
+        <view class="booking-status status-upcoming">待参加</view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 学习成就 -->
+  <view class="card achievements-section">
+    <view class="section-header">
+      <text class="section-title">学习成就</text>
+    </view>
+    <view class="achievements-grid">
+      <view class="achievement-item {{hasAchievement.first_booking ? 'achieved' : 'locked'}}">
+        <text class="achievement-icon">🎯</text>
+        <text class="achievement-name">首次预约</text>
+      </view>
+      <view class="achievement-item {{hasAchievement.five_courses ? 'achieved' : 'locked'}}">
+        <text class="achievement-icon">📚</text>
+        <text class="achievement-name">学霸之路</text>
+      </view>
+      <view class="achievement-item {{hasAchievement.all_categories ? 'achieved' : 'locked'}}">
+        <text class="achievement-icon">🌟</text>
+        <text class="achievement-name">全能选手</text>
+      </view>
+      <view class="achievement-item {{hasAchievement.streak_learner ? 'achieved' : 'locked'}}">
+        <text class="achievement-icon">🔥</text>
+        <text class="achievement-name">连续学习者</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 学习偏好 -->
+  <view class="card preferences-section" wx:if="{{favoriteCategories.length > 0}}">
+    <view class="section-header">
+      <text class="section-title">学习偏好</text>
+    </view>
+    <view class="categories-tags">
+      <view
+        class="tag-item"
+        wx:for="{{favoriteCategories}}"
+        wx:key="name"
+      >
+        <text>{{item.name}}</text>
+        <text class="tag-count">{{item.count}}次</text>
+      </view>
+    </view>
+  </view>
+
   <!-- 功能菜单 -->
   <view class="menu-section card">
+    <view class="menu-item" bindtap="inviteFriends">
+      <view class="menu-left">
+        <text class="menu-icon">👥</text>
+        <text class="menu-title">邀请好友</text>
+      </view>
+      <view class="menu-arrow">›</view>
+    </view>
+    
     <view class="menu-item" bindtap="navigateTo" data-url="/pages/my-bookings/my-bookings">
       <view class="menu-left">
         <text class="menu-icon">📋</text>

@@ -45,14 +45,45 @@ class Database {
     await this.createTable(
       `CREATE TABLE IF NOT EXISTS users (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        openid TEXT UNIQUE NOT NULL,
+        openid TEXT UNIQUE,
         nickname TEXT,
         avatar_url TEXT,
         phone TEXT,
         email TEXT,
         role TEXT DEFAULT 'student',
+        approval_status TEXT DEFAULT 'pending',
+        approved_by INTEGER,
+        approved_at DATETIME,
+        rejection_reason TEXT,
+        registration_source TEXT DEFAULT 'mini_program',
+        share_code TEXT UNIQUE,
+        referrer_id INTEGER,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (approved_by) REFERENCES users(id),
+        FOREIGN KEY (referrer_id) REFERENCES users(id)
+      )`
+    );
+
+    // 创建用户注册申请表（用于存储未绑定openid的注册信息）
+    await this.createTable(
+      `CREATE TABLE IF NOT EXISTS registrations (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        nickname TEXT NOT NULL,
+        phone TEXT,
+        email TEXT,
+        reason TEXT,
+        approval_status TEXT DEFAULT 'pending',
+        approved_by INTEGER,
+        approved_at DATETIME,
+        rejection_reason TEXT,
+        registration_source TEXT DEFAULT 'mini_program',
+        share_code TEXT UNIQUE,
+        referrer_id INTEGER,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (approved_by) REFERENCES users(id),
+        FOREIGN KEY (referrer_id) REFERENCES users(id)
       )`
     );
 
