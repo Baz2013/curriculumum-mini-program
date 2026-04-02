@@ -1,39 +1,103 @@
 <!-- login.wxml -->
 <view class="container">
-  <view class="header">
-    <view class="logo">📚</view>
-    <text class="title">课程预约平台</text>
-    <text class="subtitle">一键登录，即刻开始学习之旅</text>
-  </view>
-
-  <view class="login-area">
-    <button
-      class="btn-login btn-weixin"
-      open-type="getUserInfo"
-      bindgetuserinfo="onGetUserInfo"
-      hover-class="btn-hover"
-    >
-      <text class="btn-icon">💬</text>
-      <text class="btn-text">微信快捷登录</text>
-    </button>
-
-    <view class="features">
-      <view class="feature-item">
-        <text class="feature-icon">✓</text>
-        <text class="feature-text">免注册，一步到位</text>
+  
+  <!-- 待审批状态卡片 -->
+  <block wx:if="{{showWaitingCard}}">
+    <view class="waiting-card">
+      <view class="card-header">
+        <view class="status-badge {{approvalStatus}}">
+          <text class="badge-dot"></text>
+          <text class="badge-text">{{approvalStatus === 'pending' ? '待审核' : '未知状态'}}</text>
+        </view>
       </view>
-      <view class="feature-item">
-        <text class="feature-icon">✓</text>
-        <text class="feature-text">海量优质课程任选</text>
+      
+      <view class="card-body">
+        <view class="user-avatar-wrapper">
+          <image
+            class="user-avatar"
+            src="{{currentUser.avatarUrl}}"
+            mode="aspectFill"
+          ></image>
+        </view>
+        
+        <view class="user-info">
+          <text class="nickname">{{currentUser.nickname}}</text>
+          <text class="account-id">账号ID: {{currentUser.id}}</text>
+        </view>
+        
+        <view class="status-message">
+          <text class="icon">⏳</text>
+          <text class="text">您的账户正在审核中</text>
+        </view>
+        
+        <view class="tips-box">
+          <text class="tip-title">温馨提示：</text>
+          <text class="tip-item">• 管理员将在工作时间内尽快审核</text>
+          <text class="tip-item">• 审核通过后会立即生效</text>
+          <text class="tip-item">• 您可随时回来查询进度</text>
+        </view>
       </view>
-      <view class="feature-item">
-        <text class="feature-icon">✓</text>
-        <text class="feature-text">智能匹配个性化推荐</text>
+      
+      <view class="card-footer">
+        <button
+          class="action-btn primary"
+          bindtap="refreshUserStatus"
+          loading="{{false}}"
+        >
+          🔄 刷新状态
+        </button>
+        <button
+          class="action-btn secondary"
+          bindtap="logoutAndReturn"
+        >
+          ↩️ 退出登录
+        </button>
       </view>
     </view>
-  </view>
+    
+    <view class="contact-support">
+      <text class="support-text">如有紧急需求，请联系客服</text>
+    </view>
+  </block>
+  
+  <!-- 默认登录表单 -->
+  <block wx:else>
+    <view class="header">
+      <view class="logo">📚</view>
+      <text class="title">课程预约平台</text>
+      <text class="subtitle">一键登录，即刻开始学习之旅</text>
+    </view>
 
-  <view class="footer">
-    <text class="agreement">登录即表示同意《用户协议》和《隐私政策》</text>
-  </view>
+    <view class="login-area">
+      <button
+        class="btn-login btn-weixin"
+        open-type="getUserInfo"
+        bindgetuserinfo="onGetUserInfo"
+        hover-class="btn-hover"
+      >
+        <text class="btn-icon">💬</text>
+        <text class="btn-text">微信快捷登录</text>
+      </button>
+
+      <view class="features">
+        <view class="feature-item">
+          <text class="feature-icon">✓</text>
+          <text class="feature-text">免注册，一步到位</text>
+        </view>
+        <view class="feature-item">
+          <text class="feature-icon">✓</text>
+          <text class="feature-text">海量优质课程任选</text>
+        </view>
+        <view class="feature-item">
+          <text class="feature-icon">✓</text>
+          <text class="feature-text">智能匹配个性化推荐</text>
+        </view>
+      </view>
+    </view>
+
+    <view class="footer">
+      <text class="agreement">登录即表示同意《用户协议》和《隐私政策》</text>
+    </view>
+  </block>
+  
 </view>

@@ -3,7 +3,10 @@ const app = getApp()
 
 Page({
   data: {
-    shareCode: ''
+    shareCode: '',
+    currentUser: null,
+    approvalStatus: '', // 'pending', 'approved', 'rejected', ''
+    showWaitingCard: false
   },
 
   onLoad(options) {
@@ -154,38 +157,134 @@ Page({
       return
     }
 
-    // 检查审批状态
-    if (user.approval_status === 'pending') {
-      wx.showModal({
+    // 兼容不同的字段命名方式
+    const approvalStatus = user.approvalStatus || user.approval_status
+    
+    console.log('[用户状态检查]', {
+      userId: user.id,
+      approvalStatus: approvalStatus,
+      nickname: user.nickname
+    })
+
+    // 首次登录或待审核状态：停留在登录页面，显示待审批卡片
+    if (approvalStatus === 'pending') {
+      this.setData({
+        currentUser: user,
+        approvalStatus: 'pending',
+        showWaitingCard: true
+      })
+      
+      wx.showToast({
         title: '账户待审核',
-        content: '您的账户正在审核中，请耐心等待管理员审批。您可以先浏览课程，但暂时不能预约。',
-        showCancel: false,
-        success: () => {
-          wx.switchTab({
-            url: '/pages/index/index'
-          })
-        }
+        icon: 'loading',
+        duration: 2000
       })
+      
+      // 不再跳转到任何页面，保持在登录页面
       return
     }
 
-    if (user.approval_status === 'rejected') {
+    // 被拒绝的状态：清除凭据，让用户重新申请
+    if (approvalStatus === 'rejected') {
       wx.showModal({
-        title: '账户已被拒绝',
-        content: user.rejection_reason || '您的账户未能通过审核，如有疑问请联系客服。',
+        title: '账户未通过审核',
+        content: user.rejection_reason || '很抱歉，您的账户未能通过审核。如需帮助请联系客服。',
         showCancel: false,
         success: () => {
-          wx.switchTab({
-            url: '/pages/index/index'
+          // 清除本地存储的认证信息
+          app.globalData.token = ''
+          app.globalData.userInfo = null
+          wx.removeStorageSync('token')
+          wx.removeStorageSync('userInfo')
+          
+          // 重置页面状态回到初始登录界面
+          this.setData({
+            currentUser: null,
+            approvalStatus: '',
+            showWaitingCard: false
           })
         }
       })
       return
     }
 
-    // 已批准的用户可以正常使用
-    wx.switchTab({
-      url: '/pages/index/index'
+    // 只有已批准的用户才允许进入主应用
+    if (approvalStatus === 'approved') {
+      wx.switchTab({
+        url: '/pages/index/index'
+      })
+      return
+    }
+
+    // 如果没有明确的审批状态，默认不允许进入
+    console.warn('[警告] 用户缺少审批状态字段:', user)
+    this.setData({
+      currentUser: user,
+      approvalStatus: 'unknown',
+      showWaitingCard: true
+    })
+  },
+
+  /**
+   * 手动刷新用户状态（用于待审批状态下轮询）
+   */
+  async refreshUserStatus() {
+    if (!this.data.currentUser) {
+      return
+    }
+
+    try {
+      const result = await app.request({
+        url: '/me',
+        method: 'GET'
+      })
+
+      if (result.success && result.user) {
+        console.log('[状态刷新] 最新用户状态:', result.user.approval_status)
+        
+        // 使用最新的用户信息重新检查状态
+        app.globalData.userInfo = result.user
+        wx.setStorageSync('userInfo', result.user)
+        
+        this.checkUserStatus(result.user)
+      }
+    } catch (error) {
+      console.error('[状态刷新失败]', error)
+      wx.showToast({
+        title: '刷新失败，稍后再试',
+        icon: 'none'
+      })
+    }
+  },
+
+  /**
+   * 返回登录按钮点击事件（从待审批状态退出）
+   */
+  logoutAndReturn() {
+    wx.showModal({
+      title: '确定要退出？',
+      content: '退出后将无法收到审批通知',
+      success: (res) => {
+        if (res.confirm) {
+          // 清除所有认证信息
+          app.globalData.token = ''
+          app.globalData.userInfo = null
+          wx.removeStorageSync('token')
+          wx.removeStorageSync('userInfo')
+          
+          // 重置页面状态
+          this.setData({
+            currentUser: null,
+            approvalStatus: '',
+            showWaitingCard: false
+          })
+          
+          wx.showToast({
+            title: '已退出',
+            icon: 'success'
+          })
+        }
+      }
     })
   }
 })

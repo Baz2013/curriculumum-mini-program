@@ -75,19 +75,70 @@ App({
           
           if (res.statusCode === 200) {
             resolve(res.data)
+          } else if (res.statusCode === 403) {
+            // 访问被拒绝（通常是因为用户未获得审批）
+            console.error('[Access Denied]', res.statusCode, res.data)
+            
+            const errorMsg = res.data?.message || '您暂无权访问此功能'
+            const approvalStatus = res.data?.approvalStatus
+            
+            // 清除认证信息
+            this.globalData.token = ''
+            this.globalData.userInfo = null
+            wx.removeStorageSync('token')
+            wx.removeStorageSync('userInfo')
+            
+            // 显示友好提示对话框
+            wx.showModal({
+              title: '访问受限',
+              content: `${errorMsg}${approvalStatus === 'pending' ? '\n\n您的账户仍在审核中，请耐心等待管理员审批。' : ''}`,
+              showCancel: false,
+              success: () => {
+                // 强制切换到登录标签页
+                wx.switchTab({
+                  url: '/pages/login/login',
+                  fail: () => {
+                    // 如果不是tabBar页面，则使用reLaunch
+                    wx.reLaunch({
+                      url: '/pages/login/login'
+                    })
+                  }
+                })
+              }
+            })
+            
+            reject(new Error(errorMsg))
           } else if (res.statusCode === 401) {
             // 未授权，跳转到登录页
+            console.error('[Unauthorized]', res.statusCode, res.data)
+            
+            // 清除过期的认证信息
+            this.globalData.token = ''
+            this.globalData.userInfo = null
+            wx.removeStorageSync('token')
+            wx.removeStorageSync('userInfo')
+            
             wx.showToast({
-              title: '请先登录',
-              icon: 'none'
+              title: '登录已失效，请重新登录',
+              icon: 'none',
+              duration: 2000
             })
+            
             setTimeout(() => {
-              wx.navigateTo({
-                url: '/pages/login/login'
+              wx.switchTab({
+                url: '/pages/login/login',
+                fail: () => {
+                  wx.reLaunch({
+                    url: '/pages/login/login'
+                  })
+                }
               })
-            }, 1500)
+            }, 2000)
+            
             reject(new Error('未授权'))
           } else {
+            // 其他HTTP错误
+            console.error('[HTTP Error]', res.statusCode, res.data)
             wx.showToast({
               title: res.data?.message || '请求失败',
               icon: 'none'
