@@ -251,11 +251,11 @@ router.post('/auto-login', async (req, res) => {
           console.error('[DB ERROR] 查询用户失败:', err);
           reject(err);
         } else {
-          console.log('[STEP 2 完成] 查询结果:', existingUser ? '找到用户' : '新用户');
           resolve(row);
         }
       });
     });
+    console.log('[STEP 2 完成] 查询结果:', existingUser ? '找到用户' : '新用户');
 
     let user;
     let isNewUser = false;
