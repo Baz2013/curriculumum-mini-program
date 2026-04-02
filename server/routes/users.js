@@ -185,15 +185,26 @@ router.put('/update', async (req, res) => {
  * 获取用户的预约列表
  */
 router.get('/bookings', async (req, res) => {
+  console.log('\n========== [/api/user/bookings] 请求开始 ==========');
+  const startTime = Date.now();
+  
   try {
     const { userId } = req.query;
+    console.log('[INFO] 请求参数 - userId:', userId);
 
     if (!userId) {
+      console.warn('[WARN] 缺少用户ID');
       return res.status(400).json({ success: false, message: '缺少用户ID' });
     }
 
     const db = getInstance();
+    
+    if (!db) {
+      console.error('[ERROR] 无法获取数据库连接');
+      throw new Error('数据库连接失败');
+    }
 
+    console.log('[STEP 1] 查询用户预约记录...');
     const bookings = await new Promise((resolve, reject) => {
       const sql = `
         SELECT b.*,
@@ -212,16 +223,41 @@ router.get('/bookings', async (req, res) => {
         WHERE b.user_id = ?
         ORDER BY b.created_at DESC
       `;
+      console.log('[SQL] 查询SQL:', sql.replace(/\s+/g, ' ').trim());
+      
       db.all(sql, [userId], (err, rows) => {
-        if (err) reject(err);
-        else resolve(rows);
+        if (err) {
+          console.error('[DB ERROR] 查询预约记录失败:', err);
+          reject(err);
+        } else {
+          console.log('[STEP 1 完成] 找到', rows.length, '条预约记录');
+          resolve(rows);
+        }
       });
     });
 
-    res.json({ success: true, list: bookings });
+    const responseData = { success: true, list: bookings };
+    
+    const elapsed = Date.now() - startTime;
+    console.log(`[/api/user/bookings] 请求完成 ✓ 耗时: ${elapsed}ms`);
+    console.log('==================================================\n');
+    
+    res.json(responseData);
   } catch (error) {
-    console.error('Get user bookings error:', error);
-    res.status(500).json({ success: false, message: '获取预约列表失败' });
+    const elapsed = Date.now() - startTime;
+    console.error(`[/api/user/bookings] 请求失败 ✗ 耗时: ${elapsed}ms`);
+    console.error('[ERROR DETAILS]:', {
+      message: error.message,
+      stack: error.stack,
+      code: error.code
+    });
+    console.error('==================================================\n');
+    
+    res.status(500).json({
+      success: false,
+      message: '获取预约列表失败',
+      detail: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
   }
 });
 

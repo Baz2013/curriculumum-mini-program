@@ -217,27 +217,43 @@ router.put('/approve-registration/:id', async (req, res) => {
  * 自动登录（新用户自动注册，老用户直接登录）
  */
 router.post('/auto-login', async (req, res) => {
+  const startTime = Date.now();
+  console.log('\n========== [/auto-login] 请求开始 ==========');
+  
   const db = getDbConnection();
   if (!db) {
+    console.error('[ERROR] 数据库连接失败');
     return res.status(500).json({ error: '数据库连接失败' });
   }
 
   try {
     const { code, userInfo, shareCode } = req.body;
+    console.log('[INFO] 收到的参数:');
+    console.log('  - code:', code ? code.substring(0, 10) + '...' : '(空)');
+    console.log('  - userInfo nickName:', userInfo?.nickName || '(空)');
+    console.log('  - shareCode:', shareCode || '(无)');
 
     if (!code || !userInfo) {
+      console.warn('[WARN] 缺少必要参数');
       return res.status(400).json({ error: '缺少必要参数' });
     }
 
     // 注意：这里简化处理，实际应用中应该用code换取真实的openid
     // 由于这是演示项目，我们直接使用code作为openid的唯一标识
     const openid = `WX_${code}`;
+    console.log('[STEP 1] 生成的openid:', openid);
 
     // 检查用户是否存在
+    console.log('[STEP 2] 查询现有用户...');
     const existingUser = await new Promise((resolve, reject) => {
       db.get('SELECT * FROM users WHERE openid = ?', [openid], (err, row) => {
-        if (err) reject(err);
-        else resolve(row);
+        if (err) {
+          console.error('[DB ERROR] 查询用户失败:', err);
+          reject(err);
+        } else {
+          console.log('[STEP 2 完成] 查询结果:', existingUser ? '找到用户' : '新用户');
+          resolve(row);
+        }
       });
     });
 
@@ -246,12 +262,15 @@ router.post('/auto-login', async (req, res) => {
 
     if (existingUser) {
       // 老用户，直接返回
+      console.log('[INFO] 老用户登录');
       user = existingUser;
     } else {
       // 新用户，自动创建账户（待审批状态）
+      console.log('[INFO] 新用户注册流程开始');
       isNewUser = true;
       
       // 生成唯一分享码
+      console.log('[STEP 3] 生成唯一分享码...');
       const generateUniqueShareCode = async () => {
         let code;
         let attempts = 0;
@@ -269,8 +288,10 @@ router.post('/auto-login', async (req, res) => {
       };
 
       const newUserShareCode = await generateUniqueShareCode();
+      console.log('[STEP 3 完成] 分享码:', newUserShareCode);
 
       // 处理推荐人
+      console.log('[STEP 4] 处理推荐关系...');
       let referrerId = null;
       if (shareCode) {
         const referrer = await new Promise((resolve, reject) => {
@@ -278,55 +299,84 @@ router.post('/auto-login', async (req, res) => {
             'SELECT id FROM users WHERE share_code = ? AND approval_status = ?',
             [shareCode, 'approved'],
             (err, row) => {
-              if (err) reject(err);
-              else resolve(row);
+              if (err) {
+                console.error('[DB ERROR] 查询推荐人失败:', err);
+                reject(err);
+              } else {
+                resolve(row);
+              }
             }
           );
         });
         if (referrer) {
           referrerId = referrer.id;
+          console.log('[STEP 4 完成] 找到推荐人 ID:', referrerId);
+        } else {
+          console.log('[STEP 4 完成] 无有效推荐人或推荐人未通过审核');
         }
+      } else {
+        console.log('[STEP 4 完成] 无分享码');
       }
 
       // 创建新用户
+      console.log('[STEP 5] 创建新用户记录...');
+      const userData = [
+        openid,
+        userInfo.nickName || '微信用户',
+        userInfo.avatarUrl || '',
+        'student',
+        'pending', // 新用户默认为待审批状态
+        newUserShareCode,
+        referrerId,
+        'mini_program'
+      ];
+      console.log('[STEP 5] 用户数据:', {
+        openid: openid.substring(0, 20),
+        nickname: userData[1],
+        role: userData[3]
+      });
+      
       const userId = await new Promise((resolve, reject) => {
         db.run(
           `INSERT INTO users (openid, nickname, avatar_url, role, approval_status, share_code, referrer_id, registration_source)
            VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-          [
-            openid,
-            userInfo.nickName || '微信用户',
-            userInfo.avatarUrl || '',
-            'student',
-            'pending', // 新用户默认为待审批状态
-            newUserShareCode,
-            referrerId,
-            'mini_program'
-          ],
+          userData,
           function(err) {
-            if (err) reject(err);
-            else resolve(this.lastID);
+            if (err) {
+              console.error('[DB ERROR] 插入用户失败:', err);
+              reject(err);
+            } else {
+              console.log('[STEP 5 完成] 用户插入成功, ID:', this.lastID);
+              resolve(this.lastID);
+            }
           }
         );
       });
 
       // 获取刚创建的用户信息
+      console.log('[STEP 6] 获取新用户信息...');
       user = await new Promise((resolve, reject) => {
         db.get('SELECT * FROM users WHERE id = ?', [userId], (err, row) => {
-          if (err) reject(err);
-          else resolve(row);
+          if (err) {
+            console.error('[DB ERROR] 查询新用户失败:', err);
+            reject(err);
+          } else {
+            console.log('[STEP 6 完成] 用户信息查询成功');
+            resolve(row);
+          }
         });
       });
     }
 
     // 生成JWT token（简单实现，生产环境应使用jsonwebtoken）
+    console.log('[STEP 7] 生成Token...');
     const token = Buffer.from(JSON.stringify({
       userId: user.id,
       openid: user.openid,
       timestamp: Date.now()
     })).toString('base64');
 
-    res.json({
+    const responseData = {
       success: true,
       token,
       user: {
@@ -340,11 +390,26 @@ router.post('/auto-login', async (req, res) => {
       },
       isNewUser,
       message: isNewUser ? '账户已创建，请等待管理员审批' : '登录成功'
-    });
+    };
+    
+    const elapsed = Date.now() - startTime;
+    console.log(`[/auto-login] 请求完成 ✓ 总耗时: ${elapsed}ms`);
+    console.log('=============================================\n');
+    
+    res.json(responseData);
 
   } catch (error) {
-    console.error('自动登录失败:', error);
-    res.status(500).json({ error: '登录失败，请稍后重试' });
+    const elapsed = Date.now() - startTime;
+    console.error(`[/auto-login] 请求失败 ✗ 耗时: ${elapsed}ms`);
+    console.error('[ERROR STACK]:', error.stack);
+    console.error('[ERROR MESSAGE]:', error.message);
+    console.error('[ERROR CODE]:', error.code);
+    console.error('=============================================\n');
+    
+    res.status(500).json({
+      error: '登录失败，请稍后重试',
+      detail: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
   }
 });
 

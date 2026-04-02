@@ -168,16 +168,29 @@ Page({
    */
   async checkBookingStatus() {
     try {
-      const bookings = await app.request({
+      const userInfo = app.globalData.userInfo
+      
+      if (!userInfo || !userInfo.id) {
+        console.warn('[检查预约状态] 用户未登录或缺少用户ID')
+        return
+      }
+      
+      console.log('[检查预约状态] 用户ID:', userInfo.id, ', 课程ID:', this.data.courseId)
+      
+      const result = await app.request({
         url: '/user/bookings',
-        method: 'GET'
+        method: 'GET',
+        data: {
+          userId: userInfo.id
+        }
       })
 
-      const isBooked = bookings.some(b => b.course_id === this.data.courseId)
+      const isBooked = result.list && result.list.some(b => b.course_id === this.data.courseId)
+      console.log('[检查预约状态] 结果:', isBooked ? '已预约' : '未预约')
       this.setData({ isBooked })
       
     } catch (error) {
-      console.error('检查预约状态失败:', error)
+      console.error('[检查预约状态失败]:', error)
       // 忽略错误，不影响正常流程
     }
   },
@@ -221,10 +234,19 @@ Page({
     app.showLoading('提交中...')
 
     try {
+      const userInfo = app.globalData.userInfo
+      
+      if (!userInfo || !userInfo.id) {
+        throw new Error('用户未登录，请先登录')
+      }
+      
+      console.log('[发起预约] 用户ID:', userInfo.id, ', 课程ID:', this.data.courseId)
+      
       await app.request({
         url: '/bookings/create',
         method: 'POST',
         data: {
+          userId: userInfo.id,
           courseId: this.data.courseId
         }
       })
@@ -277,9 +299,20 @@ Page({
     app.showLoading('处理中...')
 
     try {
+      const userInfo = app.globalData.userInfo
+      
+      if (!userInfo || !userInfo.id) {
+        throw new Error('用户未登录，请先登录')
+      }
+      
+      console.log('[取消预约] 用户ID:', userInfo.id, ', 课程ID:', this.data.courseId)
+      
       await app.request({
         url: `/bookings/cancel/${this.data.courseId}`,
-        method: 'DELETE'
+        method: 'DELETE',
+        data: {
+          userId: userInfo.id
+        }
       })
 
       this.setData({ isBooked: false })

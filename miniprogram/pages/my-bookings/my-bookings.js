@@ -38,19 +38,32 @@ Page({
     this.setData({ loading: true })
     
     try {
-      const res = await app.request({
+      const userInfo = app.globalData.userInfo
+      
+      if (!userInfo || !userInfo.id) {
+        console.warn('[获取预约列表] 用户未登录或缺少用户ID')
+        this.setData({ loading: false })
+        return
+      }
+      
+      console.log('[获取预约列表] 用户ID:', userInfo.id)
+      
+      const result = await app.request({
         url: '/user/bookings',
-        method: 'GET'
+        method: 'GET',
+        data: {
+          userId: userInfo.id
+        }
       })
 
-      const bookings = res.map(booking => ({
+      const bookings = (result.list || []).map(booking => ({
         ...booking,
-        course_title: booking.course?.title || '未知课程',
-        category_name: booking.course?.category_name || '其他',
-        teacher: booking.course?.teacher || '未知教师',
-        location: booking.course?.location || '待定',
-        start_time: booking.course?.start_time || booking.created_at,
-        end_time: booking.course?.end_time || booking.created_at
+        course_title: booking.course_title || '未知课程',
+        category_name: booking.category_name || '其他',
+        teacher: booking.teacher || '未知教师',
+        location: booking.location || '待定',
+        start_time: booking.start_time || booking.created_at,
+        end_time: booking.end_time || booking.created_at
       }))
 
       this.updateTabs(bookings)
@@ -201,9 +214,20 @@ Page({
     app.showLoading('处理中...')
 
     try {
+      const userInfo = app.globalData.userInfo
+      
+      if (!userInfo || !userInfo.id) {
+        throw new Error('用户未登录，请先登录')
+      }
+      
+      console.log('[取消预约] 用户ID:', userInfo.id, ', 课程ID:', courseId)
+      
       await app.request({
         url: `/bookings/cancel/${courseId}`,
-        method: 'DELETE'
+        method: 'DELETE',
+        data: {
+          userId: userInfo.id
+        }
       })
 
       wx.showToast({

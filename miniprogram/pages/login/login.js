@@ -47,10 +47,17 @@ Page({
     app.showLoading('登录中...')
     
     try {
+      console.log('[登录流程开始]')
+      console.log('[步骤1] 开始获取微信登录code')
+      
       // 先执行微信登录获取code
       const loginResult = await this.weixinLogin()
+      console.log('[步骤1完成] 成功获取微信code:', loginResult.code.substring(0, 10) + '***')
       
-      // 调用后端自动登录接口
+      console.log('[步骤2] 准备发送登录请求到后端')
+      console.log('[请求参数] 分享码:', this.data.shareCode || '(无)')
+      
+      // 调用后端自动登录接口，设置较长的超时时间以适应云函数+CVM的多层架构
       const result = await app.request({
         url: '/auto-login',
         method: 'POST',
@@ -58,8 +65,11 @@ Page({
           code: loginResult.code,
           userInfo: userInfo,
           shareCode: this.data.shareCode
-        }
+        },
+        timeout: 80000 // 登录请求特别设置为80秒，因为涉及数据库操作和多级代理
       })
+      
+      console.log('[步骤2完成] 后端登录请求成功')
 
       // 保孔回复的信息
       app.globalData.token = result.token
@@ -84,11 +94,29 @@ Page({
       }, 1500)
 
     } catch (error) {
-      console.error('登录失败:', error)
+      console.error('[登录失败详情]:', {
+        message: error.message,
+        errMsg: error.errMsg,
+        statusCode: error.statusCode,
+        data: error.data
+      })
+      
       wx.hideLoading()
+      
+      // 更友好的错误提示
+      let errorMessage = '登录失败，请重试'
+      if (error.message && error.message.includes('timeout')) {
+        errorMessage = '网络请求超时，请检查网络连接后重试'
+      } else if (error.message && error.message.includes('network')) {
+        errorMessage = '网络连接失败，请检查网络设置'
+      } else if (error.message) {
+        errorMessage = error.message
+      }
+      
       wx.showToast({
-        title: error.message || '登录失败，请重试',
-        icon: 'none'
+        title: errorMessage,
+        icon: 'none',
+        duration: 3000
       })
     }
   },
@@ -98,15 +126,20 @@ Page({
    */
   weixinLogin() {
     return new Promise((resolve, reject) => {
+      console.log('[wx.login] 正在调用微信登录接口...')
       wx.login({
         success: res => {
+          console.log('[wx.login] 回调结果:', res)
           if (res.code) {
+            console.log('[wx.login] 成功获取code')
             resolve(res)
           } else {
+            console.error('[wx.login] 未返回code')
             reject(new Error('获取微信登录凭证失败'))
           }
         },
         fail: err => {
+          console.error('[wx.login] 接口调用失败:', err)
           reject(err)
         }
       })

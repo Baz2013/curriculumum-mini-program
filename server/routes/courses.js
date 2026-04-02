@@ -20,8 +20,13 @@ const getDbConnection = () => {
  * 获取课程列表（支持分页、分类过滤、关键字搜索）
  */
 router.get('/list', async (req, res) => {
+  console.log('\n========== [/api/courses/list] 请求开始 ==========');
+  const startTime = Date.now();
+  
   try {
     const { page = 1, pageSize = 10, categoryId, keyword } = req.query;
+    console.log('[INFO] 请求参数:', { page, pageSize, categoryId, keyword });
+    
     const offset = (parseInt(page) - 1) * parseInt(pageSize);
     const limit = parseInt(pageSize);
 
@@ -29,35 +34,48 @@ router.get('/list', async (req, res) => {
     let params = [];
 
     // 只显示已发布的课程
-    conditions.push("status = ?");
+    conditions.push("c.status = ?");
     params.push('published');
 
     // 分类过滤
     if (categoryId && categoryId != 0) {
-      conditions.push("category_id = ?");
+      conditions.push("c.category_id = ?");
       params.push(parseInt(categoryId));
     }
 
     // 关键字搜索
     if (keyword && keyword.trim()) {
-      conditions.push("(title LIKE ? OR description LIKE ?)");
+      conditions.push("(c.title LIKE ? OR c.description LIKE ?)");
       const searchTerm = `%${keyword.trim()}%`;
       params.push(searchTerm, searchTerm);
     }
 
     const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+    console.log('[SQL] WHERE子句:', whereClause);
 
     const db = getDbConnection();
+    
+    if (!db) {
+      console.error('[ERROR] 无法获取数据库连接');
+      throw new Error('数据库连接失败');
+    }
 
     // 查询总数
+    console.log('[STEP 1] 查询课程总数...');
     const countResult = await new Promise((resolve, reject) => {
-      db.get(`SELECT COUNT(*) as total FROM courses ${whereClause}`, params, (err, row) => {
-        if (err) reject(err);
-        else resolve(row);
+      db.get(`SELECT COUNT(*) as total FROM courses c ${whereClause}`, params, (err, row) => {
+        if (err) {
+          console.error('[DB ERROR] 查询总数失败:', err);
+          reject(err);
+        } else {
+          console.log('[STEP 1 完成] 总数:', row.total);
+          resolve(row);
+        }
       });
     });
 
     // 查询课程列表
+    console.log('[STEP 2] 查询课程列表...');
     const courses = await new Promise((resolve, reject) => {
       const sql = `
         SELECT c.*, ca.name as category_name,
@@ -68,13 +86,21 @@ router.get('/list', async (req, res) => {
         ORDER BY c.start_time ASC
         LIMIT ? OFFSET ?
       `;
+      console.log('[SQL] 查询SQL:', sql.replace(/\s+/g, ' ').trim());
+      console.log('[SQL] 参数:', [...params, limit, offset]);
+      
       db.all(sql, [...params, limit, offset], (err, rows) => {
-        if (err) reject(err);
-        else resolve(rows);
+        if (err) {
+          console.error('[DB ERROR] 查询课程列表失败:', err);
+          reject(err);
+        } else {
+          console.log('[STEP 2 完成] 返回', rows.length, '条记录');
+          resolve(rows);
+        }
       });
     });
 
-    res.json({
+    const responseData = {
       success: true,
       list: courses,
       pagination: {
@@ -83,10 +109,28 @@ router.get('/list', async (req, res) => {
         total: countResult.total,
         totalPages: Math.ceil(countResult.total / limit)
       }
-    });
+    };
+    
+    const elapsed = Date.now() - startTime;
+    console.log(`[/api/courses/list] 请求完成 ✓ 耗时: ${elapsed}ms`);
+    console.log('===============================================\n');
+    
+    res.json(responseData);
   } catch (error) {
-    console.error('Get courses list error:', error);
-    res.status(500).json({ success: false, message: '获取课程列表失败' });
+    const elapsed = Date.now() - startTime;
+    console.error(`[/api/courses/list] 请求失败 ✗ 耗时: ${elapsed}ms`);
+    console.error('[ERROR DETAILS]:', {
+      message: error.message,
+      stack: error.stack,
+      code: error.code
+    });
+    console.error('===============================================\n');
+    
+    res.status(500).json({
+      success: false,
+      message: '获取课程列表失败',
+      detail: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
   }
 });
 

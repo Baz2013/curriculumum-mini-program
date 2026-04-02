@@ -3,7 +3,7 @@ App({
   globalData: {
     userInfo: null,
     token: '',
-    baseUrl: 'http://43.167.225.6:3000/api',
+    baseUrl: 'https://1403690698-d8dfopfqxl.ap-tokyo.tencentscf.com/api',
     launchOptions: {} // 存储小程序启动时的选项参数
   },
 
@@ -49,7 +49,7 @@ App({
    * 封装网络请求方法
    */
   request(options) {
-    const { url, data, method = 'GET', header = {}, timeout = 10000 } = options
+    const { url, data, method = 'GET', header = {}, timeout = 60000 } = options
     
     // 设置统一的header
     const headers = {
