@@ -3,7 +3,7 @@ App({
   globalData: {
     userInfo: null,
     token: '',
-    baseUrl: 'https://1403690698-d8dfopfqxl.ap-tokyo.tencentscf.com/api',
+    baseUrl: 'http://localhost:3000/api', // 本地开发环境，生产环境需替换为实际域名
     launchOptions: {} // 存储小程序启动时的选项参数
   },
 

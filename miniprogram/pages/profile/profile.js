@@ -101,11 +101,18 @@ Page({
       const recentUpcoming = []
 
       bookings.forEach(booking => {
-        const startTime = new Date(booking.course?.start_time || booking.created_at)
-        const endTime = new Date(booking.course?.end_time || booking.created_at)
+        // 安全检查：确保booking对象存在
+        if (!booking) return
+        
+        const courseStartTime = booking.course?.start_time
+        const courseEndTime = booking.course?.end_time
+        const fallbackTime = booking.created_at
+        
+        const startTime = new Date(courseStartTime || fallbackTime)
+        const endTime = new Date(courseEndTime || fallbackTime)
         
         // 统计学习时长（假设每节课平均2小时）
-        if (endTime > startTime) {
+        if (endTime > startTime && !isNaN(endTime - startTime)) {
           const hours = (endTime - startTime) / (1000 * 60 * 60)
           totalStudyHours += hours
         }
@@ -117,9 +124,9 @@ Page({
         // 判断状态
         if (booking.status === 'cancelled') {
           // 已取消不计入
-        } else if (now > startTime) {
+        } else if (!isNaN(startTime) && now > startTime) {
           completedCount++
-        } else {
+        } else if (!isNaN(startTime)) {
           upcomingCount++
           // 收集最近的待参加课程（最多3个）
           if (recentUpcoming.length < 3) {
@@ -162,13 +169,28 @@ Page({
    * 格式化预约项
    */
   formatBookingItem(booking) {
-    const startTime = new Date(booking.course?.start_time || booking.created_at)
-    const endTime = new Date(booking.course?.end_time || booking.created_at)
+    // 安全检查
+    if (!booking) {
+      return null
+    }
+    
+    const courseStartTime = booking.course?.start_time
+    const courseEndTime = booking.course?.end_time
+    const fallbackTime = booking.created_at
+    
+    const startTime = new Date(courseStartTime || fallbackTime)
+    const endTime = new Date(courseEndTime || fallbackTime)
+    
+    // 检查日期是否有效
+    if (isNaN(startTime.getTime())) {
+      return null
+    }
     
     const day = String(startTime.getDate()).padStart(2, '0')
     const month = String(startTime.getMonth() + 1).padStart(2, '0')
     
     const formatTime = (date) => {
+      if (isNaN(date.getTime())) return '--:--'
       const h = String(date.getHours()).padStart(2, '0')
       const m = String(date.getMinutes()).padStart(2, '0')
       return `${h}:${m}`
@@ -204,16 +226,26 @@ Page({
    * 检测连续学习
    */
   hasStreakLearning(bookings) {
-    if (bookings.length < 3) return false
+    if (!Array.isArray(bookings) || bookings.length < 3) return false
     
     const dates = bookings
-      .map(b => new Date(b.course?.start_time || b.created_at).toDateString())
+      .filter(b => b && (b.course?.start_time || b.created_at)) // 过滤掉无效数据
+      .map(b => {
+        const date = new Date(b.course?.start_time || b.created_at)
+        return isNaN(date.getTime()) ? null : date.toDateString()
+      })
+      .filter(Boolean) // 移除null值
       .reverse()
+    
+    if (dates.length < 3) return false
     
     let consecutiveDays = 1
     for (let i = 1; i < dates.length; i++) {
       const prev = new Date(dates[i - 1])
       const curr = new Date(dates[i])
+      
+      if (isNaN(prev.getTime()) || isNaN(curr.getTime())) continue
+      
       const diffDays = (prev - curr) / (1000 * 60 * 60 * 24)
       
       if (diffDays <= 7) { // 一周内有多次学习也算连续

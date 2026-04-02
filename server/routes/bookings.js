@@ -183,12 +183,13 @@ router.delete('/cancel/:courseId', async (req, res) => {
             console.error('[DB ERROR] 查询预约记录失败:', err);
             reject(err);
           } else {
-            console.log('[STEP 1 完成] 预约记录:', booking ? '找到' : '未找到');
             resolve(row);
           }
         }
       );
     });
+    
+    console.log('[STEP 1 完成] 预约记录:', booking ? '找到' : '未找到');
 
     if (!booking) {
       console.warn('[WARN] 找不到有效的预约记录');

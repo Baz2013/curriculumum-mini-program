@@ -250,6 +250,8 @@ Page({
           courseId: this.data.courseId
         }
       })
+      
+      // 成功后的额外验证可以放在这里
 
       this.setData({ 
         isBooked: true,

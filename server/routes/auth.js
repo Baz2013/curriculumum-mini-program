@@ -92,33 +92,116 @@ router.post('/register', async (req, res) => {
 /**
  * GET /api/pending-registrations
  * 获取待审批的注册列表（管理员专用）
+ * 包括两部分：
+ * 1. registrations表中approval_status=pending的传统注册申请
+ * 2. users表中approval_status=pending的一键登录用户
  */
 router.get('/pending-registrations', async (req, res) => {
+  console.log('\n========== [/api/pending-registrations] 请求开始 ==========');
+  const startTime = Date.now();
+  
   const db = getDbConnection();
   if (!db) {
+    console.error('[ERROR] 数据库连接失败');
     return res.status(500).json({ error: '数据库连接失败' });
   }
 
   try {
-    const registrations = await new Promise((resolve, reject) => {
+    // 查询传统注册申请
+    console.log('[STEP 1] 查询传统注册申请...');
+    const traditionalRegs = await new Promise((resolve, reject) => {
       db.all(
-        `SELECT r.*, u.nickname as approver_nickname 
-         FROM registrations r 
-         LEFT JOIN users u ON r.approved_by = u.id 
-         WHERE r.approval_status = 'pending' 
+        `SELECT r.*, u.nickname as approver_nickname, 'traditional' as source_type
+         FROM registrations r
+         LEFT JOIN users u ON r.approved_by = u.id
+         WHERE r.approval_status = 'pending'
          ORDER BY r.created_at DESC`,
         [],
         (err, rows) => {
-          if (err) reject(err);
-          else resolve(rows);
+          if (err) {
+            console.error('[DB ERROR] 查询传统注册申请失败:', err);
+            reject(err);
+          } else {
+            console.log('[STEP 1 完成] 传统注册申请:', rows.length, '条');
+            resolve(rows);
+          }
         }
       );
     });
 
-    res.json(registrations);
+    // 查询一键登录的待审批用户
+    console.log('[STEP 2] 查询一键登录待审用户...');
+    const quickLogins = await new Promise((resolve, reject) => {
+      db.all(
+        `SELECT u.*, 'quick_login' as source_type
+         FROM users u
+         WHERE u.approval_status = 'pending'
+         ORDER BY u.created_at DESC`,
+        [],
+        (err, rows) => {
+          if (err) {
+            console.error('[DB ERROR] 查询一键登录用户失败:', err);
+            reject(err);
+          } else {
+            console.log('[STEP 2 完成] 一键登录用户:', rows.length, '条');
+            resolve(rows);
+          }
+        }
+      );
+    });
+
+    // 合并结果，转换为统一格式
+    const mergedResults = [
+      ...traditionalRegs.map(r => ({
+        id: r.id,
+        nickname: r.nickname,
+        phone: r.phone,
+        email: r.email,
+        reason: r.reason,
+        created_at: r.created_at,
+        approval_status: r.approval_status,
+        source_type: r.source_type,
+        extra_info: {
+          registration_source: r.registration_source,
+          share_code: r.share_code
+        }
+      })),
+      ...quickLogins.map(u => ({
+        id: u.id,
+        nickname: u.nickname,
+        phone: u.phone,
+        email: u.email,
+        reason: '一键登录注册',
+        created_at: u.created_at,
+        approval_status: u.approval_status,
+        source_type: u.source_type,
+        extra_info: {
+          avatar_url: u.avatar_url,
+          share_code: u.share_code,
+          registration_source: u.registration_source
+        }
+      }))
+    ];
+
+    // 按创建时间排序
+    mergedResults.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+
+    const elapsed = Date.now() - startTime;
+    console.log(`[/api/pending-registrations] 请求完成 ✓ 总数: ${mergedResults.length}, 耗时: ${elapsed}ms`);
+    console.log('=============================================================\n');
+
+    res.json(mergedResults);
 
   } catch (error) {
-    console.error('获取待审批列表失败:', error);
+    const elapsed = Date.now() - startTime;
+    console.error(`[/api/pending-registrations] 请求失败 ✗ 耗时: ${elapsed}ms`);
+    console.error('[ERROR DETAILS]:', {
+      message: error.message,
+      stack: error.stack,
+      code: error.code
+    });
+    console.error('=============================================================\n');
+    
     res.status(500).json({ error: '获取列表失败' });
   }
 });
@@ -126,88 +209,222 @@ router.get('/pending-registrations', async (req, res) => {
 /**
  * PUT /api/approve-registration/:id
  * 审批注册申请（管理员专用）
+ * 支持两种类型的审批：
+ * 1. 传统注册申请（registrations表）
+ * 2. 一键登录用户（users表）
  */
 router.put('/approve-registration/:id', async (req, res) => {
+  console.log('\n========== [/api/approve-registration/:id] 请求开始 ==========');
+  const startTime = Date.now();
+  
   const db = getDbConnection();
   if (!db) {
+    console.error('[ERROR] 数据库连接失败');
     return res.status(500).json({ error: '数据库连接失败' });
   }
 
   try {
-    const { action, reason } = req.body; // action: 'approve' | 'reject'
+    const { action, reason, sourceType } = req.body; // action: 'approve' | 'reject', sourceType: 'traditional' | 'quick_login'
     const regId = req.params.id;
     const adminUserId = req.user?.id || 1; // 默认第一个管理员
 
+    console.log('[INFO] 审批参数:', { id: regId, action, sourceType });
+
     if (!['approve', 'reject'].includes(action)) {
+      console.warn('[WARN] 无效的操作');
       return res.status(400).json({ error: '无效的操作' });
-    }
-
-    // 获取注册信息
-    const registration = await new Promise((resolve, reject) => {
-      db.get('SELECT * FROM registrations WHERE id = ?', [regId], (err, row) => {
-        if (err) reject(err);
-        else resolve(row);
-      });
-    });
-
-    if (!registration) {
-      return res.status(404).json({ error: '注册申请不存在' });
-    }
-
-    if (registration.approval_status !== 'pending') {
-      return res.status(400).json({ error: '该申请已经被处理过了' });
     }
 
     const now = new Date().toISOString();
 
-    if (action === 'approve') {
-      // 同意：将注册信息转移到users表
-      await new Promise((resolve, reject) => {
-        db.run(
-          `UPDATE registrations 
-           SET approval_status = 'approved', 
-               approved_by = ?, 
-               approved_at = ?
-           WHERE id = ?`,
-          [adminUserId, now, regId],
-          (err) => {
-            if (err) reject(err);
-            else resolve();
+    // 判断是传统注册还是一键登录
+    if (sourceType === 'quick_login') {
+      // 处理一键登录用户的审批
+      console.log('[TYPE] 一键登录用户审批');
+      
+      const user = await new Promise((resolve, reject) => {
+        db.get('SELECT * FROM users WHERE id = ?', [regId], (err, row) => {
+          if (err) {
+            console.error('[DB ERROR] 查询用户失败:', err);
+            reject(err);
+          } else {
+            resolve(row);
           }
-        );
+        });
       });
+      
+      console.log('[QUERY RESULT] 用户:', user ? '找到' : '未找到');
 
-      res.json({
-        success: true,
-        message: '已同意该注册申请'
-      });
+      if (!user) {
+        console.warn('[WARN] 用户不存在');
+        return res.status(404).json({ error: '用户不存在' });
+      }
+
+      if (user.approval_status !== 'pending') {
+        console.warn('[WARN] 该用户已经被处理过了');
+        return res.status(400).json({ error: '该用户已经被处理过了' });
+      }
+
+      if (action === 'approve') {
+        console.log('[ACTION] 批准用户');
+        
+        await new Promise((resolve, reject) => {
+          db.run(
+            `UPDATE users
+             SET approval_status = 'approved',
+                 approved_by = ?,
+                 approved_at = ?
+             WHERE id = ?`,
+            [adminUserId, now, regId],
+            (err) => {
+              if (err) {
+                console.error('[DB ERROR] 更新用户状态失败:', err);
+                reject(err);
+              } else {
+                console.log('[SUCCESS] 用户状态更新成功');
+                resolve();
+              }
+            }
+          );
+        });
+
+        res.json({
+          success: true,
+          message: '已批准该用户'
+        });
+
+      } else {
+        console.log('[ACTION] 拒绝用户');
+        
+        await new Promise((resolve, reject) => {
+          db.run(
+            `UPDATE users
+             SET approval_status = 'rejected',
+                 approved_by = ?,
+                 approved_at = ?,
+                 rejection_reason = ?
+             WHERE id = ?`,
+            [adminUserId, now, reason || '', regId],
+            (err) => {
+              if (err) {
+                console.error('[DB ERROR] 更新用户状态失败:', err);
+                reject(err);
+              } else {
+                console.log('[SUCCESS] 用户状态更新成功');
+                resolve();
+              }
+            }
+          );
+        });
+
+        res.json({
+          success: true,
+          message: '已拒绝该用户'
+        });
+      }
 
     } else {
-      // 拒绝
-      await new Promise((resolve, reject) => {
-        db.run(
-          `UPDATE registrations 
-           SET approval_status = 'rejected', 
-               approved_by = ?, 
-               approved_at = ?,
-               rejection_reason = ?
-           WHERE id = ?`,
-          [adminUserId, now, reason || '', regId],
-          (err) => {
-            if (err) reject(err);
-            else resolve();
+      // 处理传统注册申请的审批
+      console.log('[TYPE] 传统注册申请审批');
+      
+      const registration = await new Promise((resolve, reject) => {
+        db.get('SELECT * FROM registrations WHERE id = ?', [regId], (err, row) => {
+          if (err) {
+            console.error('[DB ERROR] 查询注册申请失败:', err);
+            reject(err);
+          } else {
+            resolve(row);
           }
-        );
+        });
       });
+      
+      console.log('[QUERY RESULT] 注册申请:', registration ? '找到' : '未找到');
 
-      res.json({
-        success: true,
-        message: '已拒绝该注册申请'
-      });
+      if (!registration) {
+        console.warn('[WARN] 注册申请不存在');
+        return res.status(404).json({ error: '注册申请不存在' });
+      }
+
+      if (registration.approval_status !== 'pending') {
+        console.warn('[WARN] 该申请已经被处理过了');
+        return res.status(400).json({ error: '该申请已经被处理过了' });
+      }
+
+      if (action === 'approve') {
+        console.log('[ACTION] 批准注册申请');
+        
+        // 同意：将注册信息转移到users表
+        await new Promise((resolve, reject) => {
+          db.run(
+            `UPDATE registrations
+             SET approval_status = 'approved',
+                 approved_by = ?,
+                 approved_at = ?
+             WHERE id = ?`,
+            [adminUserId, now, regId],
+            (err) => {
+              if (err) {
+                console.error('[DB ERROR] 更新注册申请失败:', err);
+                reject(err);
+              } else {
+                console.log('[SUCCESS] 注册申请状态更新成功');
+                resolve();
+              }
+            }
+          );
+        });
+
+        res.json({
+          success: true,
+          message: '已同意该注册申请'
+        });
+
+      } else {
+        console.log('[ACTION] 拒绝注册申请');
+        
+        // 拒绝
+        await new Promise((resolve, reject) => {
+          db.run(
+            `UPDATE registrations
+             SET approval_status = 'rejected',
+                 approved_by = ?,
+                 approved_at = ?,
+                 rejection_reason = ?
+             WHERE id = ?`,
+            [adminUserId, now, reason || '', regId],
+            (err) => {
+              if (err) {
+                console.error('[DB ERROR] 更新注册申请失败:', err);
+                reject(err);
+              } else {
+                console.log('[SUCCESS] 注册申请状态更新成功');
+                resolve();
+              }
+            }
+          );
+        });
+
+        res.json({
+          success: true,
+          message: '已拒绝该注册申请'
+        });
+      }
     }
 
+    const elapsed = Date.now() - startTime;
+    console.log(`[/api/approve-registration/:id] 请求完成 ✓ 耗时: ${elapsed}ms`);
+    console.log('================================================================\n');
+
   } catch (error) {
-    console.error('审批失败:', error);
+    const elapsed = Date.now() - startTime;
+    console.error(`[/api/approve-registration/:id] 请求失败 ✗ 耗时: ${elapsed}ms`);
+    console.error('[ERROR DETAILS]:', {
+      message: error.message,
+      stack: error.stack,
+      code: error.code
+    });
+    console.error('================================================================\n');
+    
     res.status(500).json({ error: '审批失败，请稍后重试' });
   }
 });

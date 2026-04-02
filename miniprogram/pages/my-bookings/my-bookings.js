@@ -56,7 +56,10 @@ Page({
         }
       })
 
-      const bookings = (result.list || []).map(booking => ({
+      // 安全检查：确保结果是数组
+      const rawBookings = Array.isArray(result?.list) ? result.list : []
+      
+      const bookings = rawBookings.map(booking => ({
         ...booking,
         course_title: booking.course_title || '未知课程',
         category_name: booking.category_name || '其他',
