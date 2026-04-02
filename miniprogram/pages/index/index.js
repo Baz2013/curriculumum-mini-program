@@ -95,11 +95,18 @@ Page({
     this.setData({ loading: true })
     
     try {
-      const params = {
-        page: this.data.page,
-        pageSize: this.data.pageSize,
-        categoryId: this.data.currentCategory.id !== 0 ? this.data.currentCategory.id : undefined,
-        keyword: this.data.keyword.trim() || undefined
+      // 构建干净的请求参数，避免undefined出现在URL中
+      const params = {}
+      params.page = this.data.page
+      params.pageSize = this.data.pageSize
+      
+      if (this.data.currentCategory.id !== 0) {
+        params.categoryId = this.data.currentCategory.id
+      }
+      
+      const trimmedKeyword = this.data.keyword.trim()
+      if (trimmedKeyword) {
+        params.keyword = trimmedKeyword
       }
 
       const res = await app.request({

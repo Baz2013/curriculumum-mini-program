@@ -322,12 +322,12 @@ async function loadUsers() {
         );
         const result = await response.json();
         
-        if (result.success) {
-            renderUsers(result.users);
-            
-            // 同时加载待审批数量
-            loadPendingCount();
-        }
+        // 后端直接返回数组，不需要检查result.success
+        const users = Array.isArray(result) ? result : [];
+        renderUsers(users);
+        
+        // 同时加载待审批数量
+        loadPendingCount();
     } catch (error) {
         console.error('加载用户列表失败:', error);
     }
@@ -341,16 +341,16 @@ async function loadPendingCount() {
         const response = await fetch(`${API_BASE_URL}/pending-registrations`);
         const result = await response.json();
         
-        if (result.success) {
-            const countElement = document.getElementById('pendingAlertCount');
-            if (countElement) {
-                countElement.textContent = result.registrations.length;
-                
-                // 如果有待审批申请，显示警告横幅；否则隐藏
-                const alertBanner = document.querySelector('.alert-banner');
-                if (alertBanner) {
-                    alertBanner.style.display = result.registrations.length > 0 ? 'block' : 'none';
-                }
+        // 后端直接返回数组
+        const registrations = Array.isArray(result) ? result : [];
+        const countElement = document.getElementById('pendingAlertCount');
+        if (countElement) {
+            countElement.textContent = registrations.length;
+            
+            // 如果有待审批申请，显示警告横幅；否则隐藏
+            const alertBanner = document.querySelector('.alert-banner');
+            if (alertBanner) {
+                alertBanner.style.display = registrations.length > 0 ? 'block' : 'none';
             }
         }
     } catch (error) {
@@ -423,9 +423,9 @@ async function loadRegistrations() {
         const response = await fetch(`${API_BASE_URL}/pending-registrations`);
         const result = await response.json();
         
-        if (result.success) {
-            renderRegistrations(result.registrations);
-        }
+        // 后端直接返回数组
+        const registrations = Array.isArray(result) ? result : [];
+        renderRegistrations(registrations);
     } catch (error) {
         console.error('加载注册申请失败:', error);
     }
@@ -442,7 +442,13 @@ function renderRegistrations(registrations) {
         return;
     }
     
-    tbody.innerHTML = registrations.map(registration => `
+    tbody.innerHTML = registrations.map(registration => {
+        // 显示来源类型徽章
+        const sourceBadge = registration.source_type === 'quick_login'
+            ? '<span class="badge info">快捷登录</span>'
+            : '';
+        
+        return `
         <tr>
             <td>${registration.id}</td>
             <td>${escapeHtml(registration.nickname)}</td>
@@ -451,16 +457,17 @@ function renderRegistrations(registrations) {
             <td>${escapeHtml(registration.reason || '-')}</td>
             <td>${formatDateTime(registration.created_at)}</td>
             <td>
-                <span class="badge warning">${getStatusText(registration.status)}</span>
+                ${sourceBadge}
+                <span class="badge warning">${getStatusText(registration.approval_status)}</span>
             </td>
             <td>
                 <div class="action-buttons">
-                    <button class="btn-success" onclick="approveRegistration(${registration.id})">通过</button>
-                    <button class="btn-danger" onclick="showRejectReasonDialog(${registration.id})">拒绝</button>
+                    <button class="btn-success" onclick="approveRegistrationWithSource(${registration.id}, '${registration.source_type}')">通过</button>
+                    <button class="btn-danger" onclick="showRejectReasonDialogWithSource(${registration.id}, '${registration.source_type}')">拒绝</button>
                 </div>
             </td>
-        </tr>
-    `).join('');
+        </tr>`;
+    }).join('');
 }
 
 /**
@@ -476,9 +483,9 @@ function getStatusText(status) {
 }
 
 /**
- * 通过注册申请
+ * 通过注册申请（带来源类型）
  */
-async function approveRegistration(id) {
+async function approveRegistrationWithSource(id, sourceType) {
     if (!confirm('确定要通过这个注册申请吗？')) return;
     
     try {
@@ -488,7 +495,8 @@ async function approveRegistration(id) {
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-                action: 'approve'
+                action: 'approve',
+                sourceType: sourceType || 'traditional'
             })
         });
         
@@ -508,9 +516,16 @@ async function approveRegistration(id) {
 }
 
 /**
- * 显示拒绝原因对话框
+ * 通过注册申请（兼容旧版本）
  */
-function showRejectReasonDialog(id) {
+async function approveRegistration(id) {
+    return approveRegistrationWithSource(id, 'traditional');
+}
+
+/**
+ * 显示拒绝原因对话框（带来源类型）
+ */
+function showRejectReasonDialogWithSource(id, sourceType) {
     showModal('拒绝理由', `
         <div class="form-group">
             <label>请输入拒绝理由：</label>
@@ -518,15 +533,22 @@ function showRejectReasonDialog(id) {
         </div>
         <div class="modal-footer">
             <button type="button" class="btn-cancel" onclick="closeModalDirectly()">取消</button>
-            <button type="button" class="btn-submit" onclick="confirmRejection(${id})">确认拒绝</button>
+            <button type="button" class="btn-submit" onclick="confirmRejectionWithSource(${id}, '${sourceType}')">确认拒绝</button>
         </div>
     `);
 }
 
 /**
- * 确认拒绝注册申请
+ * 显示拒绝原因对话框（兼容旧版本）
  */
-async function confirmRejection(id) {
+function showRejectReasonDialog(id) {
+    return showRejectReasonDialogWithSource(id, 'traditional');
+}
+
+/**
+ * 确认拒绝注册申请（带来源类型）
+ */
+async function confirmRejectionWithSource(id, sourceType) {
     const rejectReason = document.getElementById('rejectReason').value.trim();
     
     if (!rejectReason) {
@@ -542,7 +564,8 @@ async function confirmRejection(id) {
             },
             body: JSON.stringify({
                 action: 'reject',
-                reason: rejectReason
+                reason: rejectReason,
+                sourceType: sourceType || 'traditional'
             })
         });
         
@@ -560,6 +583,13 @@ async function confirmRejection(id) {
         console.error('拒绝注册申请失败:', error);
         alert('操作失败，请稍后重试');
     }
+}
+
+/**
+ * 确认拒绝注册申请（兼容旧版本）
+ */
+async function confirmRejection(id) {
+    return confirmRejectionWithSource(id, 'traditional');
 }
 
 /**
